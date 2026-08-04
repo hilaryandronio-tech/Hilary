@@ -1,0 +1,65 @@
+import { useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { TEAM } from "../data/team";
+
+export default function Login() {
+  const [qui, setQui] = useState(TEAM[0].key);
+  const [pin, setPin] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [envoi, setEnvoi] = useState(false);
+
+  const entree = TEAM.find((t) => t.key === qui);
+
+  const connecter = async () => {
+    setEnvoi(true);
+    setErreur("");
+    const { error } = await supabase.auth.signInWithPassword({ email: entree.email, password: pin });
+    setEnvoi(false);
+    if (error) {
+      setErreur("Code incorrect. Réessaie.");
+      setPin("");
+    }
+  };
+
+  return (
+    <div className="tf">
+      <div className="tf-login">
+        <div className="tf-login-in">
+          <img src="/icones/icone-blanc-512.png" alt="Tama Ferme" />
+          <div className="tf-login-t">Tama Ferme</div>
+          <div className="tf-login-s">Gestion de la ferme · Toamasina</div>
+
+          <div className="tf-login-lbl">Qui es-tu ?</div>
+          <div className="tf-who">
+            {TEAM.map((t) => (
+              <button key={t.key} data-on={qui === t.key ? 1 : 0} onClick={() => { setQui(t.key); setPin(""); setErreur(""); }}>
+                {t.nom}
+              </button>
+            ))}
+          </div>
+
+          <div className="tf-login-lbl">Code à 4 chiffres</div>
+          <div className="tf-pin">
+            {[0, 1, 2, 3].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
+          </div>
+
+          {erreur && <p className="tf-login-err">{erreur}</p>}
+
+          <div className="tf-keys">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "<"].map((k) => (
+              <button key={k} className="tf-key" onClick={() => {
+                if (envoi) return;
+                if (k === "C") return setPin("");
+                if (k === "<") return setPin(pin.slice(0, -1));
+                if (pin.length < 4) setPin(pin + k);
+              }}>{k}</button>
+            ))}
+            <button className="tf-key" data-ok="1" disabled={pin.length < 4 || envoi} onClick={connecter}>
+              {envoi ? "…" : "Entrer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

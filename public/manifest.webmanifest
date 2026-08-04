@@ -1,0 +1,62 @@
+{
+  "name": "Tama Ferme — Gestion",
+  "short_name": "Tama Ferme",
+  "description": "Saisie quotidienne et pilotage de la ferme avicole Tama Ferme, Toamasina.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EFFCF3",
+  "theme_color": "#36251E",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icones/icone-marron-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-marron-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icones/splash-1080x1920.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Saisie ferme",
+      "short_name": "Ferme",
+      "url": "/?ecran=ferme",
+      "description": "Provende, mortalité et charges du jour"
+    },
+    {
+      "name": "Fiche de ponte",
+      "short_name": "Ponte",
+      "url": "/?ecran=magasin",
+      "description": "Collecte par calibre"
+    },
+    {
+      "name": "Créances",
+      "short_name": "Créances",
+      "url": "/?ecran=creances",
+      "description": "Livraisons impayées à recouvrer"
+    }
+  ]
+}
