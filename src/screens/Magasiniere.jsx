@@ -6,7 +6,7 @@ import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES, SEED_LOTS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
-import { enqueue } from "../lib/offlineQueue";
+import { enqueue, onQueueChange } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 const enPonteSeed = SEED_LOTS.filter((l) => l.en_ponte).map((l) => ({ id: l.id, nom: l.nom, vivant: l.effectif_initial }));
@@ -19,6 +19,7 @@ export default function Magasiniere() {
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
+  const [totaux, setTotaux] = useState({}); // { [lot_id]: oeufs déjà enregistrés ce jour-là }
 
   useEffect(() => {
     supabase
@@ -32,6 +33,28 @@ export default function Magasiniere() {
       });
   }, []);
 
+  const chargerTotaux = () => {
+    supabase
+      .from("pontes")
+      .select("lot_id, ponte_lignes(oeufs)")
+      .eq("date", date)
+      .not("lot_id", "is", null)
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const parLot = {};
+        data.forEach((p) => {
+          parLot[p.lot_id] = (parLot[p.lot_id] || 0) + (p.ponte_lignes ?? []).reduce((s, l) => s + l.oeufs, 0);
+        });
+        setTotaux(parLot);
+      });
+  };
+  useEffect(() => {
+    chargerTotaux();
+    // se rafraîchit aussi quand la file d'attente se vide (sync qui rattrape)
+    return onQueueChange(chargerTotaux);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
+
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const setPadVal = (v) => {
@@ -44,7 +67,9 @@ export default function Magasiniere() {
   // Collecte au détail (en œufs, pas forcément un multiple de 30) — distinct
   // de la grille en alvéoles, qui reste le mode de saisie habituel.
   const detailOeufsDraft = useMemo(() => CALIBRES.reduce((s, c) => s + val("d" + c), 0), [draft]);
-  const oeufsDraft = alvDraft * ALV + detailOeufsDraft;
+  // Les cassés se vendent (500 Ar) donc comptent dans le total et le taux de
+  // ponte, contrairement aux sales/fêlés qui restent un pur dégât (prix à 0).
+  const oeufsDraft = alvDraft * ALV + detailOeufsDraft + val("casse");
   const tauxPonte = lot?.vivant ? (oeufsDraft / lot.vivant) * 100 : 0;
 
   const peutEnregistrer = oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0;
@@ -59,6 +84,9 @@ export default function Magasiniere() {
     // contrainte d'unicité de la table.
     const lignes = CALIBRES.map((c) => ({ calibre: c, oeufs: val("c" + c) * ALV + val("d" + c) }))
       .filter((l) => l.oeufs > 0);
+    // Les cassés se vendent (500 Ar), donc comptent aussi comme production —
+    // pas seulement comme dégât — en plus de rester dans oeufs_casses ci-dessous.
+    if (val("casse")) lignes.push({ calibre: "CASSE", oeufs: val("casse") });
 
     if (lignes.length || val("casse") || val("sale")) {
       const ponteId = crypto.randomUUID();
@@ -103,6 +131,27 @@ export default function Magasiniere() {
             </button>
           ))}
         </div>
+
+        {lots.length > 0 && (
+          <div className="tf-card">
+            <div className="tf-cardhead">
+              <span className="tf-cardtitle">Total {lots.map((l) => l.id).join(" + ")}</span>
+              <span className="tf-tag">{date === today() ? "AUJOURD'HUI" : dLabel(date).toUpperCase()}</span>
+            </div>
+            <div className="tf-ticket">
+              {lots.map((l) => (
+                <div className="tf-ticket-row" key={l.id}>
+                  <span>{l.id}</span>
+                  <span>{fmt(totaux[l.id] || 0)} œufs</span>
+                </div>
+              ))}
+            </div>
+            <div className="tf-live">
+              <span className="tf-live-n">{fmt(lots.reduce((s, l) => s + (totaux[l.id] || 0), 0))}</span>
+              <span className="tf-live-l">œufs déjà enregistrés, tous bâtiments confondus</span>
+            </div>
+          </div>
+        )}
 
         <div className="tf-card">
           <div className="tf-cardhead">

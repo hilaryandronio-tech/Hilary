@@ -13,14 +13,17 @@
 
 -- Calibres d'œufs et prix de vente de base
 create table calibres (
-  code        text primary key,          -- S1, S2, M1, M2, L1, L2, XL1, XL2
+  code        text primary key,          -- S1, S2, M1, M2, L1, L2, XL1, XL2, CASSE
   ordre       smallint not null,         -- ordre d'affichage
   prix_base   integer  not null          -- Ar par œuf
 );
 
 insert into calibres (code, ordre, prix_base) values
   ('S1',1,600), ('S2',2,620), ('M1',3,650), ('M2',4,660),
-  ('L1',5,670), ('L2',6,680), ('XL1',7,700), ('XL2',8,750);
+  ('L1',5,670), ('L2',6,680), ('XL1',7,700), ('XL2',8,750),
+  -- pas un vrai calibre : les œufs cassés se vendent aussi, à part de la
+  -- grille normale (jamais aux clients grossistes, ni en alvéoles)
+  ('CASSE',9,500);
 
 
 -- Bâtiments / lots de poules

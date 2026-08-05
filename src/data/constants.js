@@ -34,3 +34,8 @@ export const CATEGORIES_CHARGES = [
   "Carburant", "Voiture", "Frais", "Alvéoles", "Papier film", "Étiquette",
   "Loyer", "Dératisation", "Remb. machine", "Autres",
 ];
+
+export const CATEGORIES_CHARGES_VENTE = [
+  "Taimbakona", "Bozaka", "Sachet", "Frais", "Crédit", "Scotch",
+  "Carton", "Kesika", "Electricité", "Loyer", "Salaire", "Autres",
+];

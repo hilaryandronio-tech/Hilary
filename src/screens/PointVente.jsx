@@ -4,18 +4,22 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
-import { CALIBRES, PRIX_BASE, CLIENTS_FALLBACK } from "../data/constants";
+import { CALIBRES, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 const slug = (nom) => nom.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+// Les cassés se vendent, mais pas aux clients grossistes (grille "Vente
+// client") ni comme un calibre normal — juste à l'unité, au comptoir.
+const CALIBRES_DETAIL = [...CALIBRES, "CASSE"];
+const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 
 export default function PointVente() {
   const { profil } = useAuth();
   const [clients, setClients] = useState(CLIENTS_FALLBACK);
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
-  const [prixBase, setPrixBase] = useState(PRIX_BASE);
+  const [prixBase, setPrixBase] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
   const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
@@ -77,13 +81,19 @@ export default function PointVente() {
   // grossistes (tarifs négociés), les deux comptent en œufs à l'unité pour
   // pouvoir saisir une commande qui n'est pas un multiple de 30.
   const totalDetail = useMemo(
-    () => CALIBRES.reduce((s, c) => s + val("d" + c) * prixBase[c], 0),
+    () => CALIBRES_DETAIL.reduce((s, c) => s + val("d" + c) * prixBase[c], 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [draft, prixBase]
   );
 
+  const totalCharges = useMemo(
+    () => CATEGORIES_CHARGES_VENTE.reduce((s, c) => s + val("ch_" + c), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft]
+  );
+
   const peutEnregistrer =
-    totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0 || val("chgv") > 0;
+    totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0 || totalCharges > 0;
 
   const enregistrer = async () => {
     const auteur = profil?.id;
@@ -117,7 +127,7 @@ export default function PointVente() {
       );
     }
 
-    const lignesDetail = CALIBRES.filter((c) => val("d" + c) > 0);
+    const lignesDetail = CALIBRES_DETAIL.filter((c) => val("d" + c) > 0);
     if (lignesDetail.length) {
       const venteId = crypto.randomUUID();
       jobs.push(
@@ -145,8 +155,10 @@ export default function PointVente() {
     if (val("cred")) {
       jobs.push(enqueue({ table: "ventes", payload: { date, canal: "detail", montant: val("cred"), credit: true, auteur } }));
     }
-    if (val("chgv")) {
-      jobs.push(enqueue({ table: "charges", payload: { date, categorie: "Point de vente", montant: val("chgv"), origine: "point_vente", auteur } }));
+    for (const c of CATEGORIES_CHARGES_VENTE) {
+      if (val("ch_" + c)) {
+        jobs.push(enqueue({ table: "charges", payload: { date, categorie: c, montant: val("ch_" + c), origine: "point_vente", auteur } }));
+      }
     }
 
     await Promise.all(jobs);
@@ -213,17 +225,17 @@ export default function PointVente() {
             <span className="tf-tag">EN ŒUFS</span>
           </div>
           <div className="tf-grid4">
-            {CALIBRES.map((c) => (
-              <NumField key={c} label={`${c} · ${prixBase[c]}`} unit="œufs" value={val("d" + c)}
+            {CALIBRES_DETAIL.map((c) => (
+              <NumField key={c} label={`${libelle(c)} · ${prixBase[c]}`} unit="œufs" value={val("d" + c)}
                 detail={val("d" + c) ? `${fmt(val("d" + c) * prixBase[c])} Ar` : null}
-                onOpen={() => open("d" + c, `Taille ${c} — ${prixBase[c]} Ar/œuf`, "œufs")} />
+                onOpen={() => open("d" + c, `${libelle(c)} — ${prixBase[c]} Ar/œuf`, "œufs")} />
             ))}
           </div>
           <div className="tf-live">
             <span className="tf-live-n">{fmt(totalDetail)}</span>
             <span className="tf-live-l">Ar — vente au détail</span>
           </div>
-          <p className="tf-note">Pour un client de passage qui n'achète pas une alvéole complète — au prix de base, pas de tarif négocié.</p>
+          <p className="tf-note">Pour un client de passage qui n'achète pas une alvéole complète — au prix de base, pas de tarif négocié. Les cassés se vendent aussi ici.</p>
         </div>
 
         <div className="tf-card">
@@ -239,8 +251,20 @@ export default function PointVente() {
         </div>
 
         <div className="tf-card">
-          <div className="tf-cardhead"><span className="tf-cardtitle">Charges du point de vente</span></div>
-          <NumField label="Total dépenses" unit="Ar" value={val("chgv")} onOpen={() => open("chgv", "Charges point de vente", "Ar")} />
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Charges du point de vente</span>
+            <span className="tf-tag">{CATEGORIES_CHARGES_VENTE.filter((c) => val("ch_" + c)).length} / {CATEGORIES_CHARGES_VENTE.length}</span>
+          </div>
+          <div className="tf-cats">
+            {CATEGORIES_CHARGES_VENTE.map((c) => (
+              <NumField key={c} label={c} unit="Ar" value={val("ch_" + c)} onOpen={() => open("ch_" + c, c, "Ar")} />
+            ))}
+          </div>
+          <div className="tf-live">
+            <span className="tf-live-n">{fmt(totalCharges)}</span>
+            <span className="tf-live-l">Ar de charges aujourd'hui</span>
+          </div>
+          <p className="tf-note">Laisse à zéro les postes sans dépense aujourd'hui. Seules les catégories remplies sont enregistrées.</p>
         </div>
 
         <div className="tf-card">
@@ -249,10 +273,10 @@ export default function PointVente() {
             <span className="tf-tag">{peutModifierPrix ? "MODIFIABLE" : "DIRECTION SEULE"}</span>
           </div>
           <div className="tf-grid4">
-            {CALIBRES.map((c) => (
-              <NumField key={c} label={c} unit="Ar" value={prixBase[c]}
+            {CALIBRES_DETAIL.map((c) => (
+              <NumField key={c} label={libelle(c)} unit="Ar" value={prixBase[c]}
                 onOpen={peutModifierPrix
-                  ? () => setPad({ key: `prix_${c}`, label: `Prix ${c}`, unit: "Ar", value: prixBase[c] })
+                  ? () => setPad({ key: `prix_${c}`, label: `Prix ${libelle(c)}`, unit: "Ar", value: prixBase[c] })
                   : undefined} />
             ))}
           </div>
