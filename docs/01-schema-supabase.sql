@@ -167,14 +167,17 @@ create table pontes (
 create table ponte_lignes (
   ponte_id  uuid not null references pontes(id) on delete cascade,
   calibre   text not null references calibres(code),
-  alveoles  integer not null check (alveoles >= 0),
+  oeufs     integer not null check (oeufs >= 0), -- à l'unité : une collecte de 5 alvéoles vaut 150, une collecte au détail de 10 œufs vaut 10
   primary key (ponte_id, calibre)
 );
 
 
 -- --- Ventes : en-tête + détail par calibre ---------------------------
---  canal 'detail'  : caisse du point de vente, montant global
---  canal 'client'  : commande livrée, détaillée en lignes
+--  canal 'detail'  : caisse du point de vente — soit un montant global
+--                    (recette du jour / à crédit), soit détaillée en lignes
+--                    quand le client achète à l'unité (pas un multiple de 30)
+--  canal 'client'  : commande livrée aux 4 clients grossistes, par alvéoles
+--                    complètes, détaillée en lignes
 create table ventes (
   id          uuid primary key default gen_random_uuid(),
   date        date not null default current_date,
@@ -195,7 +198,7 @@ create table ventes (
 create table vente_lignes (
   vente_id  uuid not null references ventes(id) on delete cascade,
   calibre   text not null references calibres(code),
-  alveoles  integer not null check (alveoles > 0),
+  oeufs     integer not null check (oeufs > 0), -- à l'unité : une vente client de 3 alvéoles vaut 90, une vente détail de 10 œufs vaut 10
   prix_unit integer not null,               -- prix figé au moment de la vente
   primary key (vente_id, calibre)
 );
@@ -242,10 +245,10 @@ cheptel as (
 )
 select j.date,
        -- production
-       coalesce((select sum(pl.alveoles) * 30
+       coalesce((select sum(pl.oeufs)
                  from ponte_lignes pl join pontes p on p.id = pl.ponte_id
                  where p.date = j.date), 0)                      as oeufs,
-       coalesce((select sum(pl.alveoles) * 30 * c.prix_base
+       coalesce((select sum(pl.oeufs * c.prix_base)
                  from ponte_lignes pl
                  join pontes p   on p.id = pl.ponte_id
                  join calibres c on c.code = pl.calibre
@@ -403,9 +406,9 @@ create policy ecrire_tarifs on tarifs_clients for all
 -- =====================================================================
 
 insert into lots (id, nom, effectif_initial, date_mise_en_place, en_ponte) values
-  ('B1','Bâtiment 1', 3000, current_date - 294, true),
-  ('B2','Bâtiment 2', 3000, current_date - 217, true),
-  ('B3','Bâtiment 3', 3000, current_date -  84, false);
+  ('V1','Bâtiment 1', 3000, current_date - 294, true),
+  ('V2','Bâtiment 2', 3000, current_date - 217, true),
+  ('V3','Bâtiment 3', 3000, current_date -  84, false);
 
 -- Rappel : renseigner prix_provende_kg et cout_poulette dans parametres,
 -- sinon le bénéfice et le prix de revient sont faux.

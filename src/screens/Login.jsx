@@ -2,6 +2,8 @@ import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { TEAM } from "../data/team";
 
+const CODE_LEN = 6; // longueur minimale par défaut de Supabase Auth — voir src/data/team.js
+
 export default function Login() {
   const [qui, setQui] = useState(TEAM[0].key);
   const [pin, setPin] = useState("");
@@ -38,9 +40,9 @@ export default function Login() {
             ))}
           </div>
 
-          <div className="tf-login-lbl">Code à 4 chiffres</div>
+          <div className="tf-login-lbl">Code à {CODE_LEN} chiffres</div>
           <div className="tf-pin">
-            {[0, 1, 2, 3].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
+            {[...Array(CODE_LEN).keys()].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
           </div>
 
           {erreur && <p className="tf-login-err">{erreur}</p>}
@@ -51,10 +53,10 @@ export default function Login() {
                 if (envoi) return;
                 if (k === "C") return setPin("");
                 if (k === "<") return setPin(pin.slice(0, -1));
-                if (pin.length < 4) setPin(pin + k);
+                if (pin.length < CODE_LEN) setPin(pin + k);
               }}>{k}</button>
             ))}
-            <button className="tf-key" data-ok="1" disabled={pin.length < 4 || envoi} onClick={connecter}>
+            <button className="tf-key" data-ok="1" disabled={pin.length < CODE_LEN || envoi} onClick={connecter}>
               {envoi ? "…" : "Entrer"}
             </button>
           </div>

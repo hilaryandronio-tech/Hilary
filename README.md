@@ -9,13 +9,11 @@ ressaisie manuelle depuis WhatsApp. Contexte complet : [docs/03-brief-technique.
 2. Copier `.env.example` vers `.env.local` et renseigner l'URL et la clé anon
    d'un projet Supabase (Dashboard > Project Settings > API).
 3. Dans Supabase > SQL Editor, exécuter [docs/01-schema-supabase.sql](docs/01-schema-supabase.sql).
-4. Dans Supabase > Authentication > Providers > Email, envisager d'abaisser la
-   longueur minimale du mot de passe (défaut 6) si le code à 4 chiffres est
-   conservé tel quel côté auth — voir la remarque de sécurité dans
+4. Créer un utilisateur Supabase Auth par entrée de `src/data/team.js`
+   (mêmes emails, code à 6 chiffres comme mot de passe), puis une ligne
+   correspondante dans la table `profils` — voir la remarque dans
    [src/data/team.js](src/data/team.js).
-5. Créer un utilisateur Supabase Auth par entrée de `src/data/team.js`
-   (mêmes emails), puis une ligne correspondante dans la table `profils`.
-6. `npm run dev`
+5. `npm run dev`
 
 ## État du scaffold
 

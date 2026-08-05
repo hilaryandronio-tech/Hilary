@@ -53,8 +53,16 @@ export default function PointVente() {
   );
   const totalClientCourant = CALIBRES.reduce((s, c) => s + venteClient(client, c), 0);
 
+  // Vente au comptoir à l'unité (pas forcément un multiple de 30) — distinct
+  // de la grille clients grossistes, qui reste en alvéoles complètes.
+  const totalDetail = useMemo(
+    () => CALIBRES.reduce((s, c) => s + val("d" + c) * PRIX_BASE[c], 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft]
+  );
+
   const peutEnregistrer =
-    totalClients > 0 || val("rec") > 0 || val("cred") > 0 || val("chgv") > 0;
+    totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0 || val("chgv") > 0;
 
   const enregistrer = async () => {
     const auteur = profil?.id;
@@ -81,8 +89,30 @@ export default function PointVente() {
           payload: lignesCalibre.map((c) => ({
             vente_id: venteId,
             calibre: c,
-            alveoles: val(`v_${slug(cl.nom)}_${c}`),
+            oeufs: val(`v_${slug(cl.nom)}_${c}`) * ALV,
             prix_unit: prixClient(cl, c),
+          })),
+        })
+      );
+    }
+
+    const lignesDetail = CALIBRES.filter((c) => val("d" + c) > 0);
+    if (lignesDetail.length) {
+      const venteId = crypto.randomUUID();
+      jobs.push(
+        enqueue({
+          table: "ventes",
+          payload: { id: venteId, date: today(), canal: "detail", montant: totalDetail, credit: false, auteur },
+        })
+      );
+      jobs.push(
+        enqueue({
+          table: "vente_lignes",
+          payload: lignesDetail.map((c) => ({
+            vente_id: venteId,
+            calibre: c,
+            oeufs: val("d" + c),
+            prix_unit: PRIX_BASE[c],
           })),
         })
       );
@@ -127,11 +157,14 @@ export default function PointVente() {
           {client && (
             <>
               <div className="tf-grid4">
-                {CALIBRES.map((c) => (
-                  <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit=""
-                    value={val(`v_${slug(client.nom)}_${c}`)}
-                    onOpen={() => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "alv")} />
-                ))}
+                {CALIBRES.map((c) => {
+                  const alv = val(`v_${slug(client.nom)}_${c}`);
+                  return (
+                    <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit="alv" value={alv}
+                      detail={alv ? `${fmt(alv * ALV)} œufs · ${fmt(alv * ALV * prixClient(client, c))} Ar` : null}
+                      onOpen={() => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "alv")} />
+                  );
+                })}
               </div>
               <div className="tf-live">
                 <span className="tf-live-n">{fmt(totalClientCourant)}</span>
@@ -152,14 +185,33 @@ export default function PointVente() {
         </div>
 
         <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Vente au détail par calibre</span>
+            <span className="tf-tag">EN ŒUFS</span>
+          </div>
+          <div className="tf-grid4">
+            {CALIBRES.map((c) => (
+              <NumField key={c} label={`${c} · ${PRIX_BASE[c]}`} unit="œufs" value={val("d" + c)}
+                detail={val("d" + c) ? `${fmt(val("d" + c) * PRIX_BASE[c])} Ar` : null}
+                onOpen={() => open("d" + c, `Taille ${c} — ${PRIX_BASE[c]} Ar/œuf`, "œufs")} />
+            ))}
+          </div>
+          <div className="tf-live">
+            <span className="tf-live-n">{fmt(totalDetail)}</span>
+            <span className="tf-live-l">Ar — vente au détail</span>
+          </div>
+          <p className="tf-note">Pour un client de passage qui n'achète pas une alvéole complète — au prix de base, pas de tarif négocié.</p>
+        </div>
+
+        <div className="tf-card">
           <div className="tf-cardhead"><span className="tf-cardtitle">Encaissements</span></div>
           <div className="tf-grid2">
             <NumField label="Recette du jour" unit="Ar" value={val("rec")} onOpen={() => open("rec", "Recette encaissée", "Ar")} />
             <NumField label="Vendu à crédit" unit="Ar" tone="brick" value={val("cred")} onOpen={() => open("cred", "Vendu à crédit", "Ar")} />
           </div>
           <div className="tf-live">
-            <span className="tf-live-n">{fmt(val("rec") + val("cred") + totalClients)}</span>
-            <span className="tf-live-l">Ar de chiffre d'affaires (caisse + clients)</span>
+            <span className="tf-live-n">{fmt(val("rec") + val("cred") + totalClients + totalDetail)}</span>
+            <span className="tf-live-l">Ar de chiffre d'affaires (caisse + clients + détail)</span>
           </div>
         </div>
 

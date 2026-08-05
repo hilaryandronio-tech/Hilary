@@ -24,9 +24,9 @@ export const CLIENTS_FALLBACK = [
 ];
 
 export const SEED_LOTS = [
-  { id: "B1", nom: "Bâtiment 1", effectif_initial: 3000, en_ponte: true },
-  { id: "B2", nom: "Bâtiment 2", effectif_initial: 3000, en_ponte: true },
-  { id: "B3", nom: "Bâtiment 3", effectif_initial: 3000, en_ponte: false },
+  { id: "V1", nom: "Bâtiment 1", effectif_initial: 3000, en_ponte: true },
+  { id: "V2", nom: "Bâtiment 2", effectif_initial: 3000, en_ponte: true },
+  { id: "V3", nom: "Bâtiment 3", effectif_initial: 3000, en_ponte: false },
 ];
 
 export const CATEGORIES_CHARGES = [

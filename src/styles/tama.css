@@ -58,6 +58,7 @@
             line-height:1.15; font-variant-numeric:tabular-nums; }
 .tf-value[data-zero="1"] { color:#B6C4B9; }
 .tf-unit { font-size:11px; font-weight:500; color:var(--muted); margin-left:3px; }
+.tf-field-tag { display:inline-block; margin-top:5px; font-variant-numeric:tabular-nums; }
 .tf-field[data-tone="brick"][data-filled="1"] .tf-value { color:var(--brick); }
 
 .tf-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }

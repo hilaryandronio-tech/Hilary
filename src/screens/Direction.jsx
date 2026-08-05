@@ -3,8 +3,6 @@ import Header from "../components/Header";
 import { fmt, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 
-const ALV = 30;
-
 const zeroJour = {
   oeufs: 0, valeur_collecte: 0, mortalite: 0, provende_kg: 0,
   encaisse: 0, livre_credit: 0, charges: 0, poules_en_ponte: 0,
@@ -37,7 +35,7 @@ export default function Direction() {
 
       const [{ data: ferme }, { data: pontes }, { data: ventes }, { data: charges }] = await Promise.all([
         supabase.from("saisies_ferme").select("lot_id, provende_kg, mortalite").eq("date", today()),
-        supabase.from("pontes").select("id, lot_id, ponte_lignes(alveoles)").eq("date", today()),
+        supabase.from("pontes").select("id, lot_id, ponte_lignes(oeufs)").eq("date", today()),
         supabase.from("ventes").select("canal, montant, credit, clients(nom)").eq("date", today()),
         supabase.from("charges").select("categorie, montant").eq("date", today()),
       ]);
@@ -48,7 +46,7 @@ export default function Direction() {
         if (f.mortalite) lignes.push({ label: `${f.lot_id} · Mortalité`, value: `${fmt(f.mortalite)} têtes` });
       });
       (pontes ?? []).forEach((p) => {
-        const oeufs = (p.ponte_lignes ?? []).reduce((s, l) => s + l.alveoles, 0) * ALV;
+        const oeufs = (p.ponte_lignes ?? []).reduce((s, l) => s + l.oeufs, 0);
         if (oeufs) lignes.push({ label: p.lot_id ? `${p.lot_id} · Ponte` : "Ponte", value: `${fmt(oeufs)} œufs` });
       });
       (ventes ?? []).forEach((v) => {

@@ -3,7 +3,7 @@ import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import { fmt, today } from "../components/format";
-import { ALV, CALIBRES, PRIX_BASE, PRIX_CASSE } from "../data/constants";
+import { ALV, CALIBRES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
@@ -33,34 +33,55 @@ export default function Magasiniere() {
   };
 
   const alvDraft = useMemo(() => CALIBRES.reduce((s, c) => s + val("c" + c), 0), [draft]);
-  const oeufsDraft = alvDraft * ALV;
-  const valeurDraft = useMemo(
-    () => CALIBRES.reduce((s, c) => s + val("c" + c) * ALV * PRIX_BASE[c], 0) + val("casse") * PRIX_CASSE,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft]
-  );
+  // Collecte au détail (en œufs, pas forcément un multiple de 30) — distinct
+  // de la grille en alvéoles, qui reste le mode de saisie habituel.
+  const detailOeufsDraft = useMemo(() => CALIBRES.reduce((s, c) => s + val("d" + c), 0), [draft]);
+  const oeufsDraft = alvDraft * ALV + detailOeufsDraft;
   const tauxPonte = enPonte ? (oeufsDraft / enPonte) * 100 : 0;
 
   const peutEnregistrer = oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0;
 
   const enregistrer = async () => {
     const auteur = profil?.id;
-    const ponteId = crypto.randomUUID();
+    const jobs = [];
 
-    await enqueue({
-      table: "pontes",
-      payload: { id: ponteId, date: today(), lot_id: null, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
-    });
-
-    const lignes = CALIBRES.filter((c) => val("c" + c)).map((c) => ({
-      ponte_id: ponteId,
-      calibre: c,
-      alveoles: val("c" + c),
-    }));
-    if (lignes.length) {
-      await enqueue({ table: "ponte_lignes", payload: lignes });
+    const ligneAlv = CALIBRES.filter((c) => val("c" + c) > 0);
+    if (ligneAlv.length || val("casse") || val("sale")) {
+      const ponteId = crypto.randomUUID();
+      jobs.push(
+        enqueue({
+          table: "pontes",
+          payload: { id: ponteId, date: today(), lot_id: null, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
+        })
+      );
+      if (ligneAlv.length) {
+        jobs.push(
+          enqueue({
+            table: "ponte_lignes",
+            payload: ligneAlv.map((c) => ({ ponte_id: ponteId, calibre: c, oeufs: val("c" + c) * ALV })),
+          })
+        );
+      }
     }
 
+    const ligneDetail = CALIBRES.filter((c) => val("d" + c) > 0);
+    if (ligneDetail.length) {
+      const ponteDetailId = crypto.randomUUID();
+      jobs.push(
+        enqueue({
+          table: "pontes",
+          payload: { id: ponteDetailId, date: today(), lot_id: null, oeufs_casses: 0, oeufs_sales: 0, auteur },
+        })
+      );
+      jobs.push(
+        enqueue({
+          table: "ponte_lignes",
+          payload: ligneDetail.map((c) => ({ ponte_id: ponteDetailId, calibre: c, oeufs: val("d" + c) })),
+        })
+      );
+    }
+
+    await Promise.all(jobs);
     setDraft({});
     setFlash("Fiche de ponte enregistrée.");
     setTimeout(() => setFlash(""), 2600);
@@ -81,8 +102,9 @@ export default function Magasiniere() {
           </div>
           <div className="tf-grid4">
             {CALIBRES.map((c) => (
-              <NumField key={c} label={`${c} · ${PRIX_BASE[c]}`} unit="" value={val("c" + c)}
-                onOpen={() => open("c" + c, `Taille ${c} — ${PRIX_BASE[c]} Ar/œuf`, "alv")} />
+              <NumField key={c} label={c} unit="alv" value={val("c" + c)}
+                detail={val("c" + c) ? `${fmt(val("c" + c) * ALV)} œufs` : null}
+                onOpen={() => open("c" + c, `Taille ${c}`, "alv")} />
             ))}
           </div>
           <div className="tf-live">
@@ -91,10 +113,20 @@ export default function Magasiniere() {
               œufs · taux de ponte {enPonte ? tauxPonte.toFixed(1) : "—"} %
             </span>
           </div>
-          <div className="tf-live">
-            <span className="tf-live-n">{fmt(valeurDraft)}</span>
-            <span className="tf-live-l">Ar — valeur de la collecte</span>
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Collecte au détail</span>
+            <span className="tf-tag">EN ŒUFS</span>
           </div>
+          <div className="tf-grid4">
+            {CALIBRES.map((c) => (
+              <NumField key={c} label={c} unit="œufs" value={val("d" + c)}
+                onOpen={() => open("d" + c, `Taille ${c}`, "œufs")} />
+            ))}
+          </div>
+          <p className="tf-note">Pour compter des œufs hors alvéole complète — ramassage partiel, casier entamé.</p>
         </div>
 
         <div className="tf-card">
