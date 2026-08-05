@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
-import { fmt, today } from "../components/format";
+import DateSelector from "../components/DateSelector";
+import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, PRIX_BASE, CLIENTS_FALLBACK } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
@@ -15,6 +16,7 @@ export default function PointVente() {
   const { profil } = useAuth();
   const [clients, setClients] = useState(CLIENTS_FALLBACK);
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
+  const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
@@ -81,7 +83,7 @@ export default function PointVente() {
       jobs.push(
         enqueue({
           table: "ventes",
-          payload: { id: venteId, date: today(), canal: "client", client_id: cl.id, montant, credit: !paye(slug(cl.nom)), auteur },
+          payload: { id: venteId, date, canal: "client", client_id: cl.id, montant, credit: !paye(slug(cl.nom)), auteur },
         })
       );
       jobs.push(
@@ -103,7 +105,7 @@ export default function PointVente() {
       jobs.push(
         enqueue({
           table: "ventes",
-          payload: { id: venteId, date: today(), canal: "detail", montant: totalDetail, credit: false, auteur },
+          payload: { id: venteId, date, canal: "detail", montant: totalDetail, credit: false, auteur },
         })
       );
       jobs.push(
@@ -120,18 +122,18 @@ export default function PointVente() {
     }
 
     if (val("rec")) {
-      jobs.push(enqueue({ table: "ventes", payload: { date: today(), canal: "detail", montant: val("rec"), credit: false, auteur } }));
+      jobs.push(enqueue({ table: "ventes", payload: { date, canal: "detail", montant: val("rec"), credit: false, auteur } }));
     }
     if (val("cred")) {
-      jobs.push(enqueue({ table: "ventes", payload: { date: today(), canal: "detail", montant: val("cred"), credit: true, auteur } }));
+      jobs.push(enqueue({ table: "ventes", payload: { date, canal: "detail", montant: val("cred"), credit: true, auteur } }));
     }
     if (val("chgv")) {
-      jobs.push(enqueue({ table: "charges", payload: { date: today(), categorie: "Point de vente", montant: val("chgv"), origine: "point_vente", auteur } }));
+      jobs.push(enqueue({ table: "charges", payload: { date, categorie: "Point de vente", montant: val("chgv"), origine: "point_vente", auteur } }));
     }
 
     await Promise.all(jobs);
     setDraft({});
-    setFlash((f) => f || "Caisse clôturée.");
+    setFlash((f) => f || (date === today() ? "Caisse clôturée." : `Caisse clôturée pour le ${dLabel(date)}.`));
     setTimeout(() => setFlash(""), 3200);
   };
 
@@ -142,6 +144,8 @@ export default function PointVente() {
         <p className="tf-eyebrow">Clôture de caisse</p>
         <h1 className="tf-h1">Recettes et dépenses</h1>
         <p className="tf-sub">Ce que la caisse a encaissé aujourd'hui, et ce qui reste à encaisser.</p>
+
+        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
         <div className="tf-card">
           <div className="tf-cardhead">

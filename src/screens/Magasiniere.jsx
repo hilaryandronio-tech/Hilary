@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
-import { fmt, today } from "../components/format";
+import DateSelector from "../components/DateSelector";
+import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
@@ -11,6 +12,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Magasiniere() {
   const { profil } = useAuth();
   const [enPonte, setEnPonte] = useState(null); // poules en ponte, pour le taux
+  const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
@@ -51,7 +53,7 @@ export default function Magasiniere() {
       jobs.push(
         enqueue({
           table: "pontes",
-          payload: { id: ponteId, date: today(), lot_id: null, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
+          payload: { id: ponteId, date, lot_id: null, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
         })
       );
       if (ligneAlv.length) {
@@ -70,7 +72,7 @@ export default function Magasiniere() {
       jobs.push(
         enqueue({
           table: "pontes",
-          payload: { id: ponteDetailId, date: today(), lot_id: null, oeufs_casses: 0, oeufs_sales: 0, auteur },
+          payload: { id: ponteDetailId, date, lot_id: null, oeufs_casses: 0, oeufs_sales: 0, auteur },
         })
       );
       jobs.push(
@@ -83,7 +85,7 @@ export default function Magasiniere() {
 
     await Promise.all(jobs);
     setDraft({});
-    setFlash("Fiche de ponte enregistrée.");
+    setFlash(date === today() ? "Fiche de ponte enregistrée." : `Fiche de ponte enregistrée pour le ${dLabel(date)}.`);
     setTimeout(() => setFlash(""), 2600);
   };
 
@@ -94,6 +96,8 @@ export default function Magasiniere() {
         <p className="tf-eyebrow">Fiche de ponte · en alvéoles</p>
         <h1 className="tf-h1">Collecte par calibre</h1>
         <p className="tf-sub">Compte en alvéoles de 30. La conversion en œufs est automatique.</p>
+
+        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
         <div className="tf-card">
           <div className="tf-cardhead">

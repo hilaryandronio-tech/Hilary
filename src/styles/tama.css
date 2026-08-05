@@ -98,6 +98,19 @@
              font-variant-numeric:tabular-nums; }
 .tf-live-l { font-size:12px; color:var(--muted); }
 
+.tf-dateselect { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.tf-dateselect-nav { flex:0 0 auto; width:44px; height:44px; border:1px solid var(--line);
+                      background:var(--card); border-radius:2px; font-size:20px; cursor:pointer;
+                      color:var(--ink); font-family:'IBM Plex Sans',sans-serif; }
+.tf-dateselect-nav:disabled { color:#B6C4B9; cursor:not-allowed; }
+.tf-dateselect-nav:focus-visible { outline:2px solid var(--yolk); outline-offset:2px; }
+.tf-dateselect-val { flex:1; text-align:center; font-family:'IBM Plex Sans Condensed',sans-serif;
+                      font-weight:600; font-size:15px; text-transform:uppercase; letter-spacing:0.02em; }
+.tf-dateselect-today { flex:0 0 auto; border:1px solid var(--ink); background:transparent; color:var(--ink);
+                        border-radius:2px; padding:0 12px; height:44px; font-size:12px; font-weight:600;
+                        cursor:pointer; font-family:'IBM Plex Sans',sans-serif; white-space:nowrap; }
+.tf-dateselect-today:focus-visible { outline:2px solid var(--yolk); outline-offset:2px; }
+
 .tf-lots { display:flex; gap:6px; margin-bottom:14px; }
 .tf-lot { flex:1; border:1px solid var(--line); background:var(--card); border-radius:2px;
           padding:9px 6px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; }

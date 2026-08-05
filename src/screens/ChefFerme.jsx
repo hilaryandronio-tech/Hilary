@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
-import { fmt, today } from "../components/format";
+import DateSelector from "../components/DateSelector";
+import { fmt, today, dLabel } from "../components/format";
 import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
@@ -17,6 +18,7 @@ export default function ChefFerme() {
   const { profil } = useAuth();
   const [lots, setLots] = useState(SEED_LOTS.map((l) => ({ ...l, vivant: l.effectif_initial })));
   const [lotId, setLotId] = useState(profil?.lot_id ?? SEED_LOTS[0].id);
+  const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
@@ -56,7 +58,7 @@ export default function ChefFerme() {
       jobs.push(
         enqueue({
           table: "saisies_ferme",
-          payload: { date: today(), lot_id: lotId, provende_kg: val("kg"), mortalite: val("mort"), auteur },
+          payload: { date, lot_id: lotId, provende_kg: val("kg"), mortalite: val("mort"), auteur },
         })
       );
     }
@@ -65,14 +67,14 @@ export default function ChefFerme() {
         jobs.push(
           enqueue({
             table: "charges",
-            payload: { date: today(), categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
+            payload: { date, categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
           })
         );
       }
     }
     await Promise.all(jobs);
     setDraft({});
-    setFlash("Saisie enregistrée.");
+    setFlash(date === today() ? "Saisie enregistrée." : `Saisie enregistrée pour le ${dLabel(date)}.`);
     setTimeout(() => setFlash(""), 2600);
   };
 
@@ -83,6 +85,8 @@ export default function ChefFerme() {
         <p className="tf-eyebrow">Saisie du soir · 30 secondes</p>
         <h1 className="tf-h1">Provende, mortalité, charges</h1>
         <p className="tf-sub">Choisis le bâtiment, tape les chiffres, enregistre.</p>
+
+        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
         <div className="tf-lots">
           {lots.map((l) => (
@@ -95,7 +99,7 @@ export default function ChefFerme() {
 
         <div className="tf-card">
           <div className="tf-cardhead">
-            <span className="tf-cardtitle">{lot?.id} — aujourd'hui</span>
+            <span className="tf-cardtitle">{lot?.id} — {date === today() ? "aujourd'hui" : dLabel(date)}</span>
             <span className="tf-tag">{lot?.en_ponte ? "EN PONTE" : "POULETTES"}</span>
           </div>
           <div className="tf-grid2">
