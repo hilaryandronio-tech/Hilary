@@ -90,7 +90,8 @@ export default function ChefFerme() {
 
         <div className="tf-lots">
           {lots.map((l) => (
-            <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0} onClick={() => setLotId(l.id)}>
+            <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0}
+              onClick={() => { setLotId(l.id); setDraft({}); }}>
               <div className="tf-lot-id">{l.id}</div>
               <div className="tf-lot-m">{fmt(l.vivant)}</div>
             </button>

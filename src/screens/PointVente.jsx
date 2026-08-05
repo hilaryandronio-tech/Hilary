@@ -10,16 +10,17 @@ import { enqueue } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 const slug = (nom) => nom.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-const prixClient = (cl, calibre) => cl?.tarifs?.[calibre] ?? PRIX_BASE[calibre];
 
 export default function PointVente() {
   const { profil } = useAuth();
   const [clients, setClients] = useState(CLIENTS_FALLBACK);
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
+  const [prixBase, setPrixBase] = useState(PRIX_BASE);
   const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
+  const peutModifierPrix = profil?.role === "direction";
 
   useEffect(() => {
     supabase
@@ -36,12 +37,29 @@ export default function PointVente() {
         setClients(withTarifs);
         setClientKey(slug(withTarifs[0].nom));
       });
+    supabase
+      .from("calibres")
+      .select("code, prix_base")
+      .then(({ data, error }) => {
+        if (error || !data?.length) return; // hors ligne : on garde le repli local
+        setPrixBase(Object.fromEntries(data.map((c) => [c.code, c.prix_base])));
+      });
   }, []);
+
+  const prixClient = (cl, calibre) => cl?.tarifs?.[calibre] ?? prixBase[calibre];
 
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
+  const modifierPrixBase = async (calibre, prix) => {
+    setPrixBase((p) => ({ ...p, [calibre]: prix }));
+    await enqueue({ table: "calibres", kind: "update", payload: { prix_base: prix }, match: { code: calibre } });
+  };
   const setPadVal = (v) => {
-    setDraft({ ...draft, [pad.key]: v });
+    if (pad.key.startsWith("prix_")) {
+      modifierPrixBase(pad.key.slice(5), v);
+    } else {
+      setDraft({ ...draft, [pad.key]: v });
+    }
     setPad({ ...pad, value: v });
   };
   const paye = (k) => draft[`pay_${k}`] !== "credit";
@@ -59,9 +77,9 @@ export default function PointVente() {
   // grossistes (tarifs négociés), les deux comptent en œufs à l'unité pour
   // pouvoir saisir une commande qui n'est pas un multiple de 30.
   const totalDetail = useMemo(
-    () => CALIBRES.reduce((s, c) => s + val("d" + c) * PRIX_BASE[c], 0),
+    () => CALIBRES.reduce((s, c) => s + val("d" + c) * prixBase[c], 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft]
+    [draft, prixBase]
   );
 
   const peutEnregistrer =
@@ -115,7 +133,7 @@ export default function PointVente() {
             vente_id: venteId,
             calibre: c,
             oeufs: val("d" + c),
-            prix_unit: PRIX_BASE[c],
+            prix_unit: prixBase[c],
           })),
         })
       );
@@ -196,9 +214,9 @@ export default function PointVente() {
           </div>
           <div className="tf-grid4">
             {CALIBRES.map((c) => (
-              <NumField key={c} label={`${c} · ${PRIX_BASE[c]}`} unit="œufs" value={val("d" + c)}
-                detail={val("d" + c) ? `${fmt(val("d" + c) * PRIX_BASE[c])} Ar` : null}
-                onOpen={() => open("d" + c, `Taille ${c} — ${PRIX_BASE[c]} Ar/œuf`, "œufs")} />
+              <NumField key={c} label={`${c} · ${prixBase[c]}`} unit="œufs" value={val("d" + c)}
+                detail={val("d" + c) ? `${fmt(val("d" + c) * prixBase[c])} Ar` : null}
+                onOpen={() => open("d" + c, `Taille ${c} — ${prixBase[c]} Ar/œuf`, "œufs")} />
             ))}
           </div>
           <div className="tf-live">
@@ -223,6 +241,26 @@ export default function PointVente() {
         <div className="tf-card">
           <div className="tf-cardhead"><span className="tf-cardtitle">Charges du point de vente</span></div>
           <NumField label="Total dépenses" unit="Ar" value={val("chgv")} onOpen={() => open("chgv", "Charges point de vente", "Ar")} />
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Prix des œufs par calibre</span>
+            <span className="tf-tag">{peutModifierPrix ? "MODIFIABLE" : "DIRECTION SEULE"}</span>
+          </div>
+          <div className="tf-grid4">
+            {CALIBRES.map((c) => (
+              <NumField key={c} label={c} unit="Ar" value={prixBase[c]}
+                onOpen={peutModifierPrix
+                  ? () => setPad({ key: `prix_${c}`, label: `Prix ${c}`, unit: "Ar", value: prixBase[c] })
+                  : undefined} />
+            ))}
+          </div>
+          <p className="tf-note">
+            {peutModifierPrix
+              ? "S'applique aux nouvelles ventes uniquement — les ventes déjà enregistrées gardent leur prix figé."
+              : "Modifiable uniquement par un compte Direction."}
+          </p>
         </div>
       </main>
 

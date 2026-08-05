@@ -393,11 +393,15 @@ create policy mon_profil on profils for select
 -- Les référentiels et paramètres ne sont modifiables que par la direction
 alter table parametres     enable row level security;
 alter table tarifs_clients enable row level security;
+alter table calibres       enable row level security;
 create policy lire_param on parametres for select using (auth.uid() is not null);
 create policy ecrire_param on parametres for all
   using (mon_role() = 'direction') with check (mon_role() = 'direction');
 create policy lire_tarifs on tarifs_clients for select using (auth.uid() is not null);
 create policy ecrire_tarifs on tarifs_clients for all
+  using (mon_role() = 'direction') with check (mon_role() = 'direction');
+create policy lire_calibres on calibres for select using (auth.uid() is not null);
+create policy ecrire_calibres on calibres for all
   using (mon_role() = 'direction') with check (mon_role() = 'direction');
 
 

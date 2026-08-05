@@ -4,14 +4,17 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
-import { ALV, CALIBRES } from "../data/constants";
+import { ALV, CALIBRES, SEED_LOTS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
+const enPonteSeed = SEED_LOTS.filter((l) => l.en_ponte).map((l) => ({ id: l.id, nom: l.nom, vivant: l.effectif_initial }));
+
 export default function Magasiniere() {
   const { profil } = useAuth();
-  const [enPonte, setEnPonte] = useState(null); // poules en ponte, pour le taux
+  const [lots, setLots] = useState(enPonteSeed);
+  const [lotId, setLotId] = useState(enPonteSeed[0]?.id ?? null);
   const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
@@ -20,10 +23,12 @@ export default function Magasiniere() {
   useEffect(() => {
     supabase
       .from("v_effectif")
-      .select("vivant, en_ponte")
+      .select("lot_id, nom, en_ponte, vivant")
       .then(({ data, error }) => {
-        if (error || !data) return; // hors ligne : pas de taux de ponte affiché
-        setEnPonte(data.filter((l) => l.en_ponte).reduce((s, l) => s + l.vivant, 0));
+        if (error || !data) return; // hors ligne : on garde le seed local
+        const enPonte = data.filter((l) => l.en_ponte).map((l) => ({ id: l.lot_id, nom: l.nom, vivant: l.vivant }));
+        setLots(enPonte);
+        setLotId((id) => (enPonte.some((l) => l.id === id) ? id : enPonte[0]?.id ?? null));
       });
   }, []);
 
@@ -34,12 +39,13 @@ export default function Magasiniere() {
     setPad({ ...pad, value: v });
   };
 
+  const lot = lots.find((l) => l.id === lotId) ?? lots[0];
   const alvDraft = useMemo(() => CALIBRES.reduce((s, c) => s + val("c" + c), 0), [draft]);
   // Collecte au détail (en œufs, pas forcément un multiple de 30) — distinct
   // de la grille en alvéoles, qui reste le mode de saisie habituel.
   const detailOeufsDraft = useMemo(() => CALIBRES.reduce((s, c) => s + val("d" + c), 0), [draft]);
   const oeufsDraft = alvDraft * ALV + detailOeufsDraft;
-  const tauxPonte = enPonte ? (oeufsDraft / enPonte) * 100 : 0;
+  const tauxPonte = lot?.vivant ? (oeufsDraft / lot.vivant) * 100 : 0;
 
   const peutEnregistrer = oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0;
 
@@ -47,40 +53,29 @@ export default function Magasiniere() {
     const auteur = profil?.id;
     const jobs = [];
 
-    const ligneAlv = CALIBRES.filter((c) => val("c" + c) > 0);
-    if (ligneAlv.length || val("casse") || val("sale")) {
+    // Un seul en-tête pontes par (date, bâtiment) — la grille alvéoles et la
+    // collecte au détail alimentent les mêmes lignes, sommées par calibre,
+    // sinon deux en-têtes le même jour pour le même bâtiment violeraient la
+    // contrainte d'unicité de la table.
+    const lignes = CALIBRES.map((c) => ({ calibre: c, oeufs: val("c" + c) * ALV + val("d" + c) }))
+      .filter((l) => l.oeufs > 0);
+
+    if (lignes.length || val("casse") || val("sale")) {
       const ponteId = crypto.randomUUID();
       jobs.push(
         enqueue({
           table: "pontes",
-          payload: { id: ponteId, date, lot_id: null, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
+          payload: { id: ponteId, date, lot_id: lotId, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
         })
       );
-      if (ligneAlv.length) {
+      if (lignes.length) {
         jobs.push(
           enqueue({
             table: "ponte_lignes",
-            payload: ligneAlv.map((c) => ({ ponte_id: ponteId, calibre: c, oeufs: val("c" + c) * ALV })),
+            payload: lignes.map((l) => ({ ponte_id: ponteId, calibre: l.calibre, oeufs: l.oeufs })),
           })
         );
       }
-    }
-
-    const ligneDetail = CALIBRES.filter((c) => val("d" + c) > 0);
-    if (ligneDetail.length) {
-      const ponteDetailId = crypto.randomUUID();
-      jobs.push(
-        enqueue({
-          table: "pontes",
-          payload: { id: ponteDetailId, date, lot_id: null, oeufs_casses: 0, oeufs_sales: 0, auteur },
-        })
-      );
-      jobs.push(
-        enqueue({
-          table: "ponte_lignes",
-          payload: ligneDetail.map((c) => ({ ponte_id: ponteDetailId, calibre: c, oeufs: val("d" + c) })),
-        })
-      );
     }
 
     await Promise.all(jobs);
@@ -95,13 +90,23 @@ export default function Magasiniere() {
       <main className="tf-body">
         <p className="tf-eyebrow">Fiche de ponte · en alvéoles</p>
         <h1 className="tf-h1">Collecte par calibre</h1>
-        <p className="tf-sub">Compte en alvéoles de 30. La conversion en œufs est automatique.</p>
+        <p className="tf-sub">Choisis le bâtiment, compte en alvéoles de 30. La conversion en œufs est automatique.</p>
 
         <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
+        <div className="tf-lots">
+          {lots.map((l) => (
+            <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0}
+              onClick={() => { setLotId(l.id); setDraft({}); }}>
+              <div className="tf-lot-id">{l.id}</div>
+              <div className="tf-lot-m">{fmt(l.vivant)}</div>
+            </button>
+          ))}
+        </div>
+
         <div className="tf-card">
           <div className="tf-cardhead">
-            <span className="tf-cardtitle">Alvéoles collectées</span>
+            <span className="tf-cardtitle">{lot?.id ?? "—"} — alvéoles collectées</span>
             <span className="tf-tag">1 ALV = 30 ŒUFS</span>
           </div>
           <div className="tf-grid4">
@@ -114,7 +119,7 @@ export default function Magasiniere() {
           <div className="tf-live">
             <span className="tf-live-n">{fmt(oeufsDraft)}</span>
             <span className="tf-live-l">
-              œufs · taux de ponte {enPonte ? tauxPonte.toFixed(1) : "—"} %
+              œufs · taux de ponte {lot?.vivant ? tauxPonte.toFixed(1) : "—"} %
             </span>
           </div>
         </div>
