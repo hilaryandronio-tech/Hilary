@@ -3,7 +3,7 @@ import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import { fmt, today } from "../components/format";
-import { ALV, CALIBRES, PRIX_BASE, CLIENTS_FALLBACK } from "../data/constants";
+import { CALIBRES, PRIX_BASE, CLIENTS_FALLBACK } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
@@ -45,7 +45,7 @@ export default function PointVente() {
   const paye = (k) => draft[`pay_${k}`] !== "credit";
 
   const client = clients.find((c) => slug(c.nom) === clientKey) ?? clients[0];
-  const venteClient = (cl, c) => val(`v_${slug(cl.nom)}_${c}`) * ALV * prixClient(cl, c);
+  const venteClient = (cl, c) => val(`v_${slug(cl.nom)}_${c}`) * prixClient(cl, c);
   const totalClients = useMemo(
     () => clients.reduce((s, cl) => s + CALIBRES.reduce((t, c) => t + venteClient(cl, c), 0), 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,8 +53,9 @@ export default function PointVente() {
   );
   const totalClientCourant = CALIBRES.reduce((s, c) => s + venteClient(client, c), 0);
 
-  // Vente au comptoir à l'unité (pas forcément un multiple de 30) — distinct
-  // de la grille clients grossistes, qui reste en alvéoles complètes.
+  // Vente au comptoir, prix de base — distincte de la grille clients
+  // grossistes (tarifs négociés), les deux comptent en œufs à l'unité pour
+  // pouvoir saisir une commande qui n'est pas un multiple de 30.
   const totalDetail = useMemo(
     () => CALIBRES.reduce((s, c) => s + val("d" + c) * PRIX_BASE[c], 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,7 +90,7 @@ export default function PointVente() {
           payload: lignesCalibre.map((c) => ({
             vente_id: venteId,
             calibre: c,
-            oeufs: val(`v_${slug(cl.nom)}_${c}`) * ALV,
+            oeufs: val(`v_${slug(cl.nom)}_${c}`),
             prix_unit: prixClient(cl, c),
           })),
         })
@@ -145,7 +146,7 @@ export default function PointVente() {
         <div className="tf-card">
           <div className="tf-cardhead">
             <span className="tf-cardtitle">Vente client</span>
-            <span className="tf-tag">EN ALVÉOLES</span>
+            <span className="tf-tag">EN ŒUFS</span>
           </div>
           <div className="tf-chips">
             {clients.map((cl) => (
@@ -158,11 +159,11 @@ export default function PointVente() {
             <>
               <div className="tf-grid4">
                 {CALIBRES.map((c) => {
-                  const alv = val(`v_${slug(client.nom)}_${c}`);
+                  const n = val(`v_${slug(client.nom)}_${c}`);
                   return (
-                    <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit="alv" value={alv}
-                      detail={alv ? `${fmt(alv * ALV)} œufs · ${fmt(alv * ALV * prixClient(client, c))} Ar` : null}
-                      onOpen={() => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "alv")} />
+                    <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit="œufs" value={n}
+                      detail={n ? `${fmt(n * prixClient(client, c))} Ar` : null}
+                      onOpen={() => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "œufs")} />
                   );
                 })}
               </div>
