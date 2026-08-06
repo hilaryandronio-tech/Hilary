@@ -3,6 +3,9 @@ import { fmt, today, dLabel } from "./format";
 import { CALIBRES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import AlerteEchecs from "./AlerteEchecs";
+
+const TABLES = ["ventes", "vente_lignes"];
 
 // Les œufs vendus dans la journée, calibre par calibre, en face du relevé de
 // collecte : ce qui est rentré d'un côté, ce qui est sorti de l'autre.
@@ -182,6 +185,7 @@ export default function ReleveVentes({ date }) {
       {enAttente && (
         <p className="tf-note">Les saisies pas encore synchronisées sont comprises dans ces chiffres.</p>
       )}
+      <AlerteEchecs tables={TABLES} />
     </div>
   );
 }

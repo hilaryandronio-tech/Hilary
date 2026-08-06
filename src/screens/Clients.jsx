@@ -3,7 +3,10 @@ import Header from "../components/Header";
 import { fmt, dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import AlerteEchecs from "../components/AlerteEchecs";
 import { useClients } from "../lib/useClients";
+
+const TABLES = ["ventes", "vente_lignes"];
 
 // Le compte d'un client grossiste : l'historique de ses livraisons, réglées
 // ou non. L'écran Créances ne montre que les impayées — une livraison
@@ -145,6 +148,8 @@ export default function Clients() {
             <div className="tf-kpi-l">Ar restant dû sur le mois</div>
           </div>
         </div>
+
+        <AlerteEchecs tables={TABLES} />
 
         {!client?.id && (
           <div className="tf-card">

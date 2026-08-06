@@ -205,6 +205,9 @@
 .tf-releve tfoot th, .tf-releve tfoot td { border-top:1px solid var(--ink); font-weight:600;
                                            padding-top:8px; }
 
+/* Avertissement sur un cumul incomplet : à lire, donc en brique et non en gris. */
+.tf-note[data-alerte="1"] { color:var(--brick); font-weight:600; }
+
 /* Statut d'une livraison au compte client : réglée, à crédit, en attente. */
 .tf-livraison-s { font-size:12px; color:var(--muted); margin-bottom:8px; }
 .tf-livraison-s[data-alerte="1"] { color:var(--brick); font-weight:600; }

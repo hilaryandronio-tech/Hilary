@@ -3,6 +3,9 @@ import { fmt, today, dLabel } from "./format";
 import { CALIBRES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import AlerteEchecs from "./AlerteEchecs";
+
+const TABLES = ["pontes", "ponte_lignes"];
 
 // Le relevé de la collecte d'une journée, calibre par calibre et bâtiment par
 // bâtiment. Sert à deux endroits et doit y dire exactement la même chose : la
@@ -138,6 +141,7 @@ export default function ReleveCollecte({ date, lots }) {
       {enAttente && (
         <p className="tf-note">Les saisies pas encore synchronisées sont comprises dans ces chiffres.</p>
       )}
+      <AlerteEchecs tables={TABLES} />
     </div>
   );
 }
