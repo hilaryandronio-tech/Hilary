@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
+import ReleveVentes from "../components/ReleveVentes";
 import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
@@ -191,6 +192,9 @@ export default function PointVente() {
         <p className="tf-sub">Ce que la caisse a encaissé aujourd'hui, et ce qui reste à encaisser.</p>
 
         <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
+
+        {/* Ce qui est déjà sorti ce jour-là, avant d'en ajouter. */}
+        <ReleveVentes date={date} />
 
         <div className="tf-card">
           <div className="tf-cardhead">
