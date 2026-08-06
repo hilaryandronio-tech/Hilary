@@ -20,6 +20,7 @@ export default function Magasiniere() {
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
   const [totaux, setTotaux] = useState({}); // { [lot_id]: oeufs déjà enregistrés ce jour-là }
+  const [dejaEnregistre, setDejaEnregistre] = useState(false);
 
   useEffect(() => {
     supabase
@@ -60,6 +61,7 @@ export default function Magasiniere() {
   const setPadVal = (v) => {
     setDraft({ ...draft, [pad.key]: v });
     setPad({ ...pad, value: v });
+    setDejaEnregistre(false);
   };
 
   const lot = lots.find((l) => l.id === lotId) ?? lots[0];
@@ -72,7 +74,7 @@ export default function Magasiniere() {
   const oeufsDraft = alvDraft * ALV + detailOeufsDraft + val("casse");
   const tauxPonte = lot?.vivant ? (oeufsDraft / lot.vivant) * 100 : 0;
 
-  const peutEnregistrer = oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0;
+  const peutEnregistrer = !dejaEnregistre && (oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0);
 
   const enregistrer = async () => {
     const auteur = profil?.id;
@@ -107,7 +109,7 @@ export default function Magasiniere() {
     }
 
     await Promise.all(jobs);
-    setDraft({});
+    setDejaEnregistre(true);
     setFlash(date === today() ? "Fiche de ponte enregistrée." : `Fiche de ponte enregistrée pour le ${dLabel(date)}.`);
     setTimeout(() => setFlash(""), 2600);
   };
@@ -120,12 +122,12 @@ export default function Magasiniere() {
         <h1 className="tf-h1">Collecte par calibre</h1>
         <p className="tf-sub">Choisis le bâtiment, compte en alvéoles de 30. La conversion en œufs est automatique.</p>
 
-        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
+        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); setDejaEnregistre(false); }} />
 
         <div className="tf-lots">
           {lots.map((l) => (
             <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0}
-              onClick={() => { setLotId(l.id); setDraft({}); }}>
+              onClick={() => { setLotId(l.id); setDraft({}); setDejaEnregistre(false); }}>
               <div className="tf-lot-id">{l.id}</div>
               <div className="tf-lot-m">{fmt(l.vivant)}</div>
             </button>
@@ -199,8 +201,10 @@ export default function Magasiniere() {
 
       <div className="tf-cta">
         <div className="tf-cta-in">
-          <button className="tf-btn" disabled={!peutEnregistrer} onClick={enregistrer}>Enregistrer</button>
-          <button className="tf-btn tf-btn-ghost" onClick={() => setDraft({})}>Effacer</button>
+          <button className="tf-btn" disabled={!peutEnregistrer} onClick={enregistrer}>
+            {dejaEnregistre ? "Enregistré" : "Enregistrer"}
+          </button>
+          <button className="tf-btn tf-btn-ghost" onClick={() => { setDraft({}); setDejaEnregistre(false); }}>Effacer</button>
         </div>
       </div>
 
