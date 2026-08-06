@@ -45,19 +45,18 @@ create policy corriger_charge on charges for update
 
 
 -- =====================================================================
---  Point à trancher, non appliqué ici
+--  Prix des œufs : rien à changer ici, et c'est voulu
 --
---  L'écran Point de vente laisse modifier le prix de base d'un calibre, mais
---  la policy `ecrire_calibres` réserve la table `calibres` à la direction.
---  Aujourd'hui cette modification échoue en silence : le prix change à
---  l'écran, rien n'est enregistré. Avec la nouvelle file, l'échec devient
---  visible dans l'en-tête — mais il faut choisir :
+--  La policy `ecrire_calibres` réserve la table `calibres` à la direction.
+--  L'écran Point de vente s'aligne dessus : le bloc « Prix des œufs par
+--  calibre » n'est modifiable que pour un compte Direction, et se rend en
+--  lecture seule pour les autres (voir `peutModifierPrix` dans
+--  src/screens/PointVente.jsx). Les deux barrières disent la même chose,
+--  donc ce refus RLS n'est jamais atteignable depuis l'application.
 --
---    a) autoriser le point de vente à changer les prix de base :
---         create policy prix_point_vente on calibres for update
---           using      (mon_role() in ('point_vente','direction'))
---           with check (mon_role() in ('point_vente','direction'));
---
---    b) ou masquer l'édition des prix pour les rôles autres que direction,
---       côté application.
+--  Si un jour la vendeuse doit pouvoir suivre le prix du marché elle-même,
+--  il faudra lever les deux ensemble — l'écran seul ne suffirait pas :
+--    create policy prix_point_vente on calibres for update
+--      using      (mon_role() in ('point_vente','direction'))
+--      with check (mon_role() in ('point_vente','direction'));
 -- =====================================================================

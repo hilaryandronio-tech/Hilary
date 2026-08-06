@@ -81,6 +81,15 @@
 .tf-field-tag { display:inline-block; margin-top:5px; font-variant-numeric:tabular-nums; }
 .tf-field[data-tone="brick"][data-filled="1"] .tf-value { color:var(--brick); }
 
+/* Champ en lecture seule (prix des œufs hors compte Direction) : on retire
+   l'affordance, pas la lisibilité. Le navigateur grise le texte d'un bouton
+   désactivé — à 30 % d'opacité c'est illisible dehors — donc on réimpose
+   l'encre. Après .tf-field[data-filled], qui a la même spécificité. */
+.tf-field:disabled { cursor:default; border-style:dashed; background:transparent;
+                     color:var(--ink); }
+.tf-field:disabled .tf-value { color:var(--ink); }
+.tf-field:disabled .tf-label, .tf-field:disabled .tf-unit { color:var(--muted); }
+
 .tf-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
 .tf-chip { border:1px solid var(--line); background:var(--field); border-radius:2px; padding:8px 11px;
            font-size:12px; font-weight:500; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;
