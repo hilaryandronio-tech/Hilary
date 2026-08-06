@@ -18,15 +18,18 @@
 
 
 -- Corriger la saisie du soir : même périmètre que la saisie initiale.
+drop   policy if exists corriger_ferme on saisies_ferme;
 create policy corriger_ferme on saisies_ferme for update
   using      (mon_role() in ('chef_ferme','direction'))
   with check (mon_role() in ('chef_ferme','direction'));
 
 -- Corriger une fiche de ponte et son détail par calibre.
+drop   policy if exists corriger_ponte on pontes;
 create policy corriger_ponte on pontes for update
   using      (mon_role() in ('magasiniere','direction'))
   with check (mon_role() in ('magasiniere','direction'));
 
+drop   policy if exists corriger_ponte_l on ponte_lignes;
 create policy corriger_ponte_l on ponte_lignes for update
   using      (mon_role() in ('magasiniere','direction'))
   with check (mon_role() in ('magasiniere','direction'));
@@ -34,11 +37,13 @@ create policy corriger_ponte_l on ponte_lignes for update
 -- Corriger le détail d'une vente. L'en-tête `ventes` est déjà couvert par la
 -- policy `solder_creance`, qui autorise déjà point_vente et direction en
 -- update — inutile d'en ajouter une deuxième.
+drop   policy if exists corriger_vente_l on vente_lignes;
 create policy corriger_vente_l on vente_lignes for update
   using      (mon_role() in ('point_vente','direction'))
   with check (mon_role() in ('point_vente','direction'));
 
 -- Corriger une charge saisie à la ferme ou au point de vente.
+drop   policy if exists corriger_charge on charges;
 create policy corriger_charge on charges for update
   using      (mon_role() in ('chef_ferme','point_vente','direction'))
   with check (mon_role() in ('chef_ferme','point_vente','direction'));
