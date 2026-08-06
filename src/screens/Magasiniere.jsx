@@ -1,117 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
+import ReleveCollecte from "../components/ReleveCollecte";
 import { fmt, today, dLabel } from "../components/format";
-import { ALV, CALIBRES, SEED_LOTS } from "../data/constants";
-import { supabase } from "../lib/supabaseClient";
-import { enqueue, idStable, onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { ALV, CALIBRES } from "../data/constants";
+import { enqueue, idStable } from "../lib/offlineQueue";
+import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
-
-const enPonteSeed = SEED_LOTS.filter((l) => l.en_ponte).map((l) => ({ id: l.id, nom: l.nom, vivant: l.effectif_initial }));
-
-// Les cassés se vendent, donc ils figurent au relevé au même titre qu'un
-// calibre — contrairement aux sales/fêlés, qui restent un pur dégât.
-const LIGNES_RELEVE = [...CALIBRES, "CASSE"];
-const libelleLigne = (c) => (c === "CASSE" ? "Cassés" : c);
 
 export default function Magasiniere() {
   const { profil } = useAuth();
-  const [lots, setLots] = useState(enPonteSeed);
-  const [lotId, setLotId] = useState(enPonteSeed[0]?.id ?? null);
+  const lots = useLotsEnPonte();
+  const [lotId, setLotId] = useState(lots[0]?.id ?? null);
   const [date, setDate] = useState(today());
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
   const [dejaEnregistre, setDejaEnregistre] = useState(false);
 
+  // Le bâtiment sélectionné doit rester dans la liste chargée depuis Supabase :
+  // sinon on saisirait sur un bâtiment qui n'est plus en ponte.
   useEffect(() => {
-    supabase
-      .from("v_effectif")
-      .select("lot_id, nom, en_ponte, vivant")
-      .then(({ data, error }) => {
-        if (error || !data) return; // hors ligne : on garde le seed local
-        const enPonte = data.filter((l) => l.en_ponte).map((l) => ({ id: l.lot_id, nom: l.nom, vivant: l.vivant }));
-        setLots(enPonte);
-        setLotId((id) => (enPonte.some((l) => l.id === id) ? id : enPonte[0]?.id ?? null));
-      });
-  }, []);
-
-  // Ce qui est déjà collecté ce jour-là, calibre par calibre et bâtiment par
-  // bâtiment, vient de deux sources qu'il faut additionner :
-  //   - `serveur` : ce que Supabase a enregistré ;
-  //   - `file`    : ce qui est saisi mais attend la synchro.
-  // Ignorer la seconde — ce que faisait cet écran — c'est afficher un total
-  // qui ne bouge pas quand la magasinière vient d'enregistrer hors ligne.
-  const [serveur, setServeur] = useState({}); // { [lot_id]: { [calibre]: oeufs } }
-  const [file, setFile] = useState({});
-  const requete = useRef(0);
-
-  const chargerServeur = async (jeton) => {
-    const { data, error } = await supabase
-      .from("pontes")
-      .select("lot_id, ponte_lignes(calibre, oeufs)")
-      .eq("date", date)
-      .not("lot_id", "is", null);
-    // Deux requêtes lancées coup sur coup peuvent revenir dans le désordre :
-    // seule la dernière demandée a le droit d'écrire dans l'état.
-    if (jeton !== requete.current) return;
-    if (error || !data) return; // hors ligne : on garde ce qu'on savait déjà
-    const parLot = {};
-    data.forEach((p) => {
-      const lignes = (parLot[p.lot_id] ??= {});
-      (p.ponte_lignes ?? []).forEach((l) => {
-        lignes[l.calibre] = (lignes[l.calibre] ?? 0) + l.oeufs;
-      });
-    });
-    setServeur(parLot);
-  };
-
-  const chargerFile = async () => {
-    const [entetes, lignes] = await Promise.all([
-      operationsEnAttente("pontes"),
-      operationsEnAttente("ponte_lignes"),
-    ]);
-    // L'en-tête porte la date et le bâtiment, les lignes n'ont que ponte_id.
-    const lotParPonte = {};
-    entetes.forEach((op) => {
-      if (op.payload?.date === date) lotParPonte[op.payload.id] = op.payload.lot_id;
-    });
-    const parLot = {};
-    lignes.forEach((op) => {
-      [].concat(op.payload).forEach((l) => {
-        const lotId = lotParPonte[l.ponte_id];
-        if (!lotId) return;
-        // Ces écritures sont des upsert : à la synchro elles remplaceront la
-        // valeur du serveur pour ce calibre, pas s'y ajouter.
-        (parLot[lotId] ??= {})[l.calibre] = l.oeufs;
-      });
-    });
-    setFile(parLot);
-  };
-
-  useEffect(() => {
-    const jeton = ++requete.current;
-    setServeur({}); // sinon, hors ligne, les chiffres de la veille restent sous la nouvelle date
-    setFile({});
-    const relire = () => { chargerServeur(jeton); chargerFile(); };
-    relire();
-    // se rafraîchit aussi quand la file bouge (saisie ajoutée, sync qui rattrape)
-    return onQueueChange(relire);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
-
-  const collecte = useMemo(() => {
-    const fusion = {};
-    for (const lotId of new Set([...Object.keys(serveur), ...Object.keys(file)])) {
-      fusion[lotId] = { ...serveur[lotId], ...file[lotId] };
-    }
-    return fusion;
-  }, [serveur, file]);
-  const totalLot = (lotId) => Object.values(collecte[lotId] ?? {}).reduce((s, n) => s + n, 0);
-  const totalGeneral = lots.reduce((s, l) => s + totalLot(l.id), 0);
-  const enAttente = Object.keys(file).length > 0;
+    setLotId((id) => (lots.some((l) => l.id === id) ? id : lots[0]?.id ?? null));
+  }, [lots]);
 
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
@@ -193,54 +106,7 @@ export default function Magasiniere() {
           ))}
         </div>
 
-        {lots.length > 0 && (
-          <div className="tf-card">
-            <div className="tf-cardhead">
-              <span className="tf-cardtitle">Œufs collectés · {lots.map((l) => l.id).join(" + ")}</span>
-              <span className="tf-tag">{date === today() ? "AUJOURD'HUI" : dLabel(date).toUpperCase()}</span>
-            </div>
-            {/* Tous les calibres sont listés, même à zéro : à position fixe d'un
-                jour sur l'autre, un calibre oublié se repère d'un coup d'œil. */}
-            <div className="tf-releve-cadre">
-            <table className="tf-releve">
-              <thead>
-                <tr>
-                  <th>Calibre</th>
-                  {lots.map((l) => <th key={l.id}>{l.id}</th>)}
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {LIGNES_RELEVE.map((c) => {
-                  const parLot = lots.map((l) => collecte[l.id]?.[c] ?? 0);
-                  const total = parLot.reduce((s, n) => s + n, 0);
-                  return (
-                    <tr key={c}>
-                      <th>{libelleLigne(c)}</th>
-                      {parLot.map((n, i) => <td key={lots[i].id}>{fmt(n)}</td>)}
-                      <td>{fmt(total)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th>Total œufs</th>
-                  {lots.map((l) => <td key={l.id}>{fmt(totalLot(l.id))}</td>)}
-                  <td>{fmt(totalGeneral)}</td>
-                </tr>
-              </tfoot>
-            </table>
-            </div>
-            <div className="tf-live">
-              <span className="tf-live-n">{fmt(totalGeneral)}</span>
-              <span className="tf-live-l">œufs déjà enregistrés, tous bâtiments confondus</span>
-            </div>
-            {enAttente && (
-              <p className="tf-note">Les saisies pas encore synchronisées sont comprises dans ces chiffres.</p>
-            )}
-          </div>
-        )}
+        <ReleveCollecte date={date} lots={lots} />
 
         <div className="tf-card">
           <div className="tf-cardhead">

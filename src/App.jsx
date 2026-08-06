@@ -3,6 +3,7 @@ import { useAuth } from "./context/AuthContext";
 import Login from "./screens/Login";
 import ChefFerme from "./screens/ChefFerme";
 import Magasiniere from "./screens/Magasiniere";
+import Collecte from "./screens/Collecte";
 import PointVente from "./screens/PointVente";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
@@ -48,6 +49,8 @@ export default function App() {
       <Route path="/ferme" element={<RoutePrivee roles={["chef_ferme"]}><ChefFerme /></RoutePrivee>} />
       <Route path="/magasin" element={<RoutePrivee roles={["magasiniere"]}><Magasiniere /></RoutePrivee>} />
       <Route path="/vente" element={<RoutePrivee roles={["point_vente"]}><PointVente /></RoutePrivee>} />
+      {/* Le relevé de collecte en lecture, pour vendre en sachant ce qui est rentré. */}
+      <Route path="/collecte" element={<RoutePrivee roles={["point_vente"]}><Collecte /></RoutePrivee>} />
       <Route path="/creances" element={<RoutePrivee roles={["point_vente"]}><Creances /></RoutePrivee>} />
       <Route path="/bilan" element={<RoutePrivee roles={["direction"]}><Bilan /></RoutePrivee>} />
       <Route path="/direction" element={<RoutePrivee roles={["direction"]}><Direction /></RoutePrivee>} />
