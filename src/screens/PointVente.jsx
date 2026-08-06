@@ -7,7 +7,7 @@ import ReleveVentes from "../components/ReleveVentes";
 import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
-import { enqueue } from "../lib/offlineQueue";
+import { enqueue, uuid } from "../lib/offlineQueue";
 import { useClients } from "../lib/useClients";
 import { useAuth } from "../context/AuthContext";
 
@@ -94,7 +94,20 @@ export default function PointVente() {
 
   // Les lignes portent une clé étrangère vers l'en-tête de vente : tout part
   // en file d'attente dans l'ordre de saisie, jamais en parallèle.
+  // Une exception ici interrompait la fonction sans un mot : pas de ligne en
+  // file, donc pas de badge non plus, et la caisse semblait enregistrée alors
+  // que rien n'était parti. Toute panne doit se voir à l'écran.
   const enregistrer = async () => {
+    try {
+      await poserEnFile();
+    } catch (e) {
+      console.error("Enregistrement interrompu", e);
+      setFlash(`Enregistrement impossible : ${e.message}. Note tes chiffres avant de quitter l'écran.`);
+      setTimeout(() => setFlash(""), 10000);
+    }
+  };
+
+  const poserEnFile = async () => {
     const auteur = profil?.id;
 
     for (const cl of clients) {
@@ -112,7 +125,7 @@ export default function PointVente() {
         setFlash(`${cl.nom} : prix inconnu pour ${sansPrix.join(", ")}. Vente non enregistrée.`);
         continue;
       }
-      const venteId = crypto.randomUUID();
+      const venteId = uuid();
       const montant = lignesCalibre.reduce((s, c) => s + venteClient(cl, c), 0);
       await enqueue({
         table: "ventes",
@@ -138,7 +151,7 @@ export default function PointVente() {
     if (detailSansPrix.length) {
       setFlash(`Vente au détail : prix inconnu pour ${detailSansPrix.join(", ")}. Non enregistrée.`);
     } else if (lignesDetail.length) {
-      const venteId = crypto.randomUUID();
+      const venteId = uuid();
       await enqueue({
         table: "ventes",
         conflict: "id",
@@ -165,14 +178,14 @@ export default function PointVente() {
       await enqueue({
         table: "ventes",
         conflict: "id",
-        payload: { id: crypto.randomUUID(), date, canal: "detail", montant: val("rec"), credit: false, auteur },
+        payload: { id: uuid(), date, canal: "detail", montant: val("rec"), credit: false, auteur },
       });
     }
     if (val("cred")) {
       await enqueue({
         table: "ventes",
         conflict: "id",
-        payload: { id: crypto.randomUUID(), date, canal: "detail", montant: val("cred"), credit: true, auteur },
+        payload: { id: uuid(), date, canal: "detail", montant: val("cred"), credit: true, auteur },
       });
     }
     for (const c of CATEGORIES_CHARGES_VENTE) {
@@ -180,7 +193,7 @@ export default function PointVente() {
         await enqueue({
           table: "charges",
           conflict: "id",
-          payload: { id: crypto.randomUUID(), date, categorie: c, montant: val("ch_" + c), origine: "point_vente", auteur },
+          payload: { id: uuid(), date, categorie: c, montant: val("ch_" + c), origine: "point_vente", auteur },
         });
       }
     }

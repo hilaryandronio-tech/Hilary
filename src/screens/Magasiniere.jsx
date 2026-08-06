@@ -46,7 +46,20 @@ export default function Magasiniere() {
 
   const peutEnregistrer = !dejaEnregistre && (oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0);
 
+  // Une exception ici interrompait la fonction sans un mot : pas de ligne en
+  // file, donc pas de badge non plus, et la fiche semblait enregistrée alors
+  // que rien n'était parti. Toute panne doit se voir à l'écran.
   const enregistrer = async () => {
+    try {
+      await poserEnFile();
+    } catch (e) {
+      console.error("Enregistrement interrompu", e);
+      setFlash(`Enregistrement impossible : ${e.message}. Note tes chiffres avant de quitter l'écran.`);
+      setTimeout(() => setFlash(""), 10000);
+    }
+  };
+
+  const poserEnFile = async () => {
     const auteur = profil?.id;
 
     // Un seul en-tête pontes par (date, bâtiment) — la grille alvéoles et la
@@ -58,7 +71,7 @@ export default function Magasiniere() {
     // corrige celle du jour au lieu d'être rejetée par cette contrainte. Les
     // lignes partent toutes, y compris à zéro, sans quoi un calibre saisi par
     // erreur puis retiré resterait dans la fiche corrigée.
-    const ponteId = await idStable("ponte", date, lotId);
+    const ponteId = idStable("ponte", date, lotId);
     // Les cassés se vendent (500 Ar), donc comptent aussi comme production —
     // pas seulement comme dégât — en plus de rester dans oeufs_casses ci-dessous.
     const lignes = [

@@ -6,7 +6,7 @@ import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
 import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
-import { enqueue, idStable } from "../lib/offlineQueue";
+import { enqueue, idStable, uuid } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 // Reference port of the prototype's Chef de ferme screen (docs/tama-app.jsx)
@@ -50,7 +50,20 @@ export default function ChefFerme() {
 
   const peutEnregistrer = Object.values(draft).some(Boolean);
 
+  // Une exception ici interrompait la fonction sans un mot : pas de ligne en
+  // file, donc pas de badge non plus, et la saisie semblait enregistrée alors
+  // que rien n'était parti. Toute panne doit se voir à l'écran.
   const enregistrer = async () => {
+    try {
+      await poserEnFile();
+    } catch (e) {
+      console.error("Enregistrement interrompu", e);
+      setFlash(`Enregistrement impossible : ${e.message}. Note tes chiffres avant de quitter l'écran.`);
+      setTimeout(() => setFlash(""), 10000);
+    }
+  };
+
+  const poserEnFile = async () => {
     const auteur = profil?.id;
     const jobs = [];
 
@@ -58,7 +71,7 @@ export default function ChefFerme() {
       // La table n'accepte qu'une saisie par (date, bâtiment). En dérivant
       // l'identifiant de ce couple, ressaisir le même soir corrige la ligne
       // au lieu de buter sur la contrainte d'unicité.
-      const saisieId = await idStable("saisie_ferme", date, lotId);
+      const saisieId = idStable("saisie_ferme", date, lotId);
       jobs.push(
         enqueue({
           table: "saisies_ferme",
@@ -77,7 +90,7 @@ export default function ChefFerme() {
           enqueue({
             table: "charges",
             conflict: "id",
-            payload: { id: crypto.randomUUID(), date, categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
+            payload: { id: uuid(), date, categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
           })
         );
       }
