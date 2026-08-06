@@ -39,7 +39,11 @@ export default function PointVente() {
       .select("code, prix_base")
       .then(({ data, error }) => {
         if (error || !data?.length) return; // hors ligne : on garde le repli local
-        setPrixBase(Object.fromEntries(data.map((c) => [c.code, c.prix_base])));
+        // Fusion sur le repli, jamais remplacement : un calibre absent de la
+        // table `calibres` laisserait sinon son prix indéfini, la ligne de
+        // vente partirait sans prix_unit et Supabase la refuserait — la vente
+        // disparaîtrait des relevés sans que personne comprenne pourquoi.
+        setPrixBase((p) => ({ ...p, ...Object.fromEntries(data.map((c) => [c.code, c.prix_base])) }));
       });
   }, []);
 
@@ -100,6 +104,14 @@ export default function PointVente() {
         setFlash(`${cl.nom} : client non synchronisé, vente non enregistrée. Réessaie une fois en ligne.`);
         continue;
       }
+      // `vente_lignes.prix_unit` est NOT NULL : une ligne sans prix serait
+      // refusée par Supabase et la vente entière partirait en échec. Mieux
+      // vaut le dire ici, tant que la saisie est encore à l'écran.
+      const sansPrix = lignesCalibre.filter((c) => !(prixClient(cl, c) > 0));
+      if (sansPrix.length) {
+        setFlash(`${cl.nom} : prix inconnu pour ${sansPrix.join(", ")}. Vente non enregistrée.`);
+        continue;
+      }
       const venteId = crypto.randomUUID();
       const montant = lignesCalibre.reduce((s, c) => s + venteClient(cl, c), 0);
       await enqueue({
@@ -122,7 +134,10 @@ export default function PointVente() {
     }
 
     const lignesDetail = CALIBRES_DETAIL.filter((c) => val("d" + c) > 0);
-    if (lignesDetail.length) {
+    const detailSansPrix = lignesDetail.filter((c) => !(prixBase[c] > 0));
+    if (detailSansPrix.length) {
+      setFlash(`Vente au détail : prix inconnu pour ${detailSansPrix.join(", ")}. Non enregistrée.`);
+    } else if (lignesDetail.length) {
       const venteId = crypto.randomUUID();
       await enqueue({
         table: "ventes",
