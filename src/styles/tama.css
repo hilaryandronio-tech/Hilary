@@ -205,6 +205,10 @@
 .tf-releve tfoot th, .tf-releve tfoot td { border-top:1px solid var(--ink); font-weight:600;
                                            padding-top:8px; }
 
+/* Statut d'une livraison au compte client : réglée, à crédit, en attente. */
+.tf-livraison-s { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.tf-livraison-s[data-alerte="1"] { color:var(--brick); font-weight:600; }
+
 .tf-ticket { font-family:'IBM Plex Mono',monospace; font-size:12px; }
 .tf-ticket-row { display:flex; justify-content:space-between; padding:6px 0;
                  border-bottom:1px dashed var(--line); }

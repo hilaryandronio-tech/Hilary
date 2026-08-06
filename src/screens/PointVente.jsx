@@ -8,6 +8,7 @@ import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
+import { useClients } from "../lib/useClients";
 import { useAuth } from "../context/AuthContext";
 
 const slug = (nom) => nom.toLowerCase().replace(/[^a-z0-9]+/g, "_");
@@ -18,7 +19,7 @@ const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 
 export default function PointVente() {
   const { profil } = useAuth();
-  const [clients, setClients] = useState(CLIENTS_FALLBACK);
+  const clients = useClients();
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
   const [prixBase, setPrixBase] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
   const [date, setDate] = useState(today());
@@ -27,21 +28,12 @@ export default function PointVente() {
   const [flash, setFlash] = useState("");
   const peutModifierPrix = profil?.role === "direction";
 
+  // Le client sélectionné doit rester dans la liste chargée depuis Supabase.
   useEffect(() => {
-    supabase
-      .from("clients")
-      .select("id, nom, tarifs_clients(calibre, prix)")
-      .eq("actif", true)
-      .then(({ data, error }) => {
-        if (error || !data?.length) return; // hors ligne : liste sans id, non vendable
-        const withTarifs = data.map((c) => ({
-          id: c.id,
-          nom: c.nom,
-          tarifs: Object.fromEntries((c.tarifs_clients ?? []).map((t) => [t.calibre, t.prix])),
-        }));
-        setClients(withTarifs);
-        setClientKey(slug(withTarifs[0].nom));
-      });
+    setClientKey((k) => (clients.some((c) => slug(c.nom) === k) ? k : slug(clients[0].nom)));
+  }, [clients]);
+
+  useEffect(() => {
     supabase
       .from("calibres")
       .select("code, prix_base")

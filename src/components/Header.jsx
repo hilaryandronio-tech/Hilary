@@ -15,6 +15,7 @@ const ECRANS = {
     { to: "/vente", l: "Caisse" },
     { to: "/collecte", l: "Ponte" },
     { to: "/creances", l: "Créances" },
+    { to: "/clients", l: "Clients" },
   ],
   direction: [
     { to: "/direction", l: "Tableau de bord" },
@@ -22,6 +23,7 @@ const ECRANS = {
     { to: "/magasin", l: "Ponte" },
     { to: "/vente", l: "Caisse" },
     { to: "/creances", l: "Créances" },
+    { to: "/clients", l: "Clients" },
     { to: "/bilan", l: "Bilan" },
   ],
 };

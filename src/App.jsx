@@ -4,6 +4,7 @@ import Login from "./screens/Login";
 import ChefFerme from "./screens/ChefFerme";
 import Magasiniere from "./screens/Magasiniere";
 import Collecte from "./screens/Collecte";
+import Clients from "./screens/Clients";
 import PointVente from "./screens/PointVente";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
@@ -52,6 +53,9 @@ export default function App() {
       {/* Le relevé de collecte en lecture, pour vendre en sachant ce qui est rentré. */}
       <Route path="/collecte" element={<RoutePrivee roles={["point_vente"]}><Collecte /></RoutePrivee>} />
       <Route path="/creances" element={<RoutePrivee roles={["point_vente"]}><Creances /></RoutePrivee>} />
+      {/* Le compte d'un client grossiste, réglé ou non — l'écran Créances ne
+          garde que les impayées. */}
+      <Route path="/clients" element={<RoutePrivee roles={["point_vente"]}><Clients /></RoutePrivee>} />
       <Route path="/bilan" element={<RoutePrivee roles={["direction"]}><Bilan /></RoutePrivee>} />
       <Route path="/direction" element={<RoutePrivee roles={["direction"]}><Direction /></RoutePrivee>} />
       <Route path="*" element={<Navigate to="/connexion" replace />} />

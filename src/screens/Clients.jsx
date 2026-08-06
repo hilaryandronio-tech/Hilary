@@ -1,0 +1,190 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import Header from "../components/Header";
+import { fmt, dLabel, today } from "../components/format";
+import { supabase } from "../lib/supabaseClient";
+import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { useClients } from "../lib/useClients";
+
+// Le compte d'un client grossiste : l'historique de ses livraisons, réglées
+// ou non. L'écran Créances ne montre que les impayées — une livraison
+// encaissée hier n'y est plus consultable nulle part.
+
+const moisCourant = () => today().slice(0, 7);
+
+const bornesMois = (mois) => {
+  const [a, m] = mois.split("-").map(Number);
+  const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return [`${mois}-01`, `${mois}-${String(dernier).padStart(2, "0")}`];
+};
+
+const decalerMois = (mois, n) => {
+  const [a, m] = mois.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1 + n, 1)).toISOString().slice(0, 7);
+};
+
+const labelMois = (mois) =>
+  new Date(mois + "-01T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
+function statut(l) {
+  if (l.enAttente) return { texte: "En attente de synchronisation", alerte: false };
+  if (!l.credit) return { texte: "Payée comptant", alerte: false };
+  if (l.solde) return { texte: `Encaissée le ${dLabel(l.date_solde)}`, alerte: false };
+  return { texte: "À crédit · non réglée", alerte: true };
+}
+
+export default function Clients() {
+  const clients = useClients();
+  const [clientNom, setClientNom] = useState(null);
+  const [mois, setMois] = useState(moisCourant());
+  const [serveur, setServeur] = useState([]);
+  const [file, setFile] = useState([]);
+  const requete = useRef(0);
+
+  const client = clients.find((c) => c.nom === clientNom) ?? clients[0];
+
+  const chargerServeur = async (jeton) => {
+    if (!client?.id) return { ids: new Set() };
+    const [debut, fin] = bornesMois(mois);
+    const { data, error } = await supabase
+      .from("ventes")
+      .select("id, date, montant, credit, solde, date_solde, vente_lignes(calibre, oeufs, prix_unit)")
+      .eq("client_id", client.id)
+      .gte("date", debut)
+      .lte("date", fin)
+      .order("date", { ascending: false });
+    // Seule la dernière requête demandée a le droit d'écrire dans l'état.
+    if (jeton !== requete.current) return { ids: new Set() };
+    if (error || !data) return { ids: new Set() }; // hors ligne : on garde ce qu'on savait
+    setServeur(data.map((v) => ({ ...v, lignes: v.vente_lignes ?? [] })));
+    return { ids: new Set(data.map((v) => v.id)) };
+  };
+
+  const chargerFile = async (dejaSurLeServeur) => {
+    if (!client?.id) return setFile([]);
+    const [debut, fin] = bornesMois(mois);
+    const [entetes, lignes] = await Promise.all([
+      operationsEnAttente("ventes"),
+      operationsEnAttente("vente_lignes"),
+    ]);
+    // Une livraison qui vient d'être synchronisée mais n'a pas encore quitté
+    // la file apparaîtrait deux fois : le serveur fait foi.
+    const enAttente = entetes
+      .map((op) => op.payload)
+      .filter(
+        (v) =>
+          v?.client_id === client.id &&
+          v.date >= debut &&
+          v.date <= fin &&
+          !dejaSurLeServeur.has(v.id)
+      );
+    const parVente = {};
+    lignes.forEach((op) => {
+      [].concat(op.payload).forEach((l) => {
+        (parVente[l.vente_id] ??= []).push(l);
+      });
+    });
+    setFile(enAttente.map((v) => ({ ...v, lignes: parVente[v.id] ?? [], enAttente: true })));
+  };
+
+  useEffect(() => {
+    const jeton = ++requete.current;
+    setServeur([]);
+    setFile([]);
+    const relire = async () => {
+      const { ids } = await chargerServeur(jeton);
+      await chargerFile(ids);
+    };
+    relire();
+    return onQueueChange(relire);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client?.id, mois]);
+
+  const livraisons = useMemo(
+    () => [...file, ...serveur].sort((a, b) => b.date.localeCompare(a.date)),
+    [file, serveur]
+  );
+  const totalMois = livraisons.reduce((s, l) => s + (l.montant ?? 0), 0);
+  const restantDu = livraisons
+    .filter((l) => l.credit && !l.solde)
+    .reduce((s, l) => s + (l.montant ?? 0), 0);
+  const moisFutur = decalerMois(mois, 1) > moisCourant();
+
+  return (
+    <div className="tf">
+      <Header />
+      <main className="tf-body">
+        <p className="tf-eyebrow">Compte client</p>
+        <h1 className="tf-h1">Historique des livraisons</h1>
+        <p className="tf-sub">Toutes les livraisons du client, réglées ou non, mois par mois.</p>
+
+        <div className="tf-chips">
+          {clients.map((c) => (
+            <button key={c.nom} className="tf-chip" data-on={client?.nom === c.nom ? 1 : 0}
+              onClick={() => setClientNom(c.nom)}>{c.nom}</button>
+          ))}
+        </div>
+
+        <div className="tf-dateselect">
+          <button className="tf-dateselect-nav" onClick={() => setMois(decalerMois(mois, -1))}
+            aria-label="Mois précédent">‹</button>
+          <div className="tf-dateselect-val">{labelMois(mois)}</div>
+          <button className="tf-dateselect-nav" onClick={() => setMois(decalerMois(mois, 1))}
+            disabled={moisFutur} aria-label="Mois suivant">›</button>
+          {mois !== moisCourant() && (
+            <button className="tf-dateselect-today" onClick={() => setMois(moisCourant())}>Ce mois</button>
+          )}
+        </div>
+
+        <div className="tf-kpis">
+          <div className="tf-kpi" data-hero="1">
+            <div className="tf-kpi-n">{fmt(totalMois)}</div>
+            <div className="tf-kpi-l">Ar livrés · {livraisons.length} livraison{livraisons.length > 1 ? "s" : ""}</div>
+          </div>
+          <div className="tf-kpi" data-alert={restantDu ? 1 : 0}>
+            <div className="tf-kpi-n">{fmt(restantDu)}</div>
+            <div className="tf-kpi-l">Ar restant dû sur le mois</div>
+          </div>
+        </div>
+
+        {!client?.id && (
+          <div className="tf-card">
+            <p className="tf-empty">
+              Client pas encore synchronisé — l'historique demande une connexion au moins une fois.
+            </p>
+          </div>
+        )}
+
+        {client?.id && livraisons.length === 0 && (
+          <div className="tf-card">
+            <p className="tf-empty">Aucune livraison à {client.nom} sur {labelMois(mois)}.</p>
+          </div>
+        )}
+
+        {livraisons.map((l) => {
+          const s = statut(l);
+          return (
+            <div className="tf-card" key={l.id}>
+              <div className="tf-cardhead">
+                <span className="tf-cardtitle">{dLabel(l.date)}</span>
+                <span className="tf-tag">{fmt(l.montant)} AR</span>
+              </div>
+              <div className="tf-livraison-s" data-alerte={s.alerte ? 1 : 0}>{s.texte}</div>
+              {l.lignes.length > 0 ? (
+                <div className="tf-ticket">
+                  {l.lignes.map((ligne) => (
+                    <div className="tf-ticket-row" key={ligne.calibre}>
+                      <span>{ligne.calibre === "CASSE" ? "Cassés" : ligne.calibre}</span>
+                      <span>{fmt(ligne.oeufs)} œufs × {fmt(ligne.prix_unit)} Ar</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="tf-note">Livraison saisie en montant global, sans détail par calibre.</p>
+              )}
+            </div>
+          );
+        })}
+      </main>
+    </div>
+  );
+}
