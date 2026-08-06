@@ -24,12 +24,21 @@ ressaisie manuelle depuis WhatsApp. Contexte complet : [docs/03-brief-technique.
   d'attente hors ligne ([src/lib/offlineQueue.js](src/lib/offlineQueue.js)),
   pas directement contre Supabase.
 - File d'attente hors ligne : écrit dans IndexedDB puis synchronise à la
-  reconnexion, dans l'ordre. Pas encore de résolution de conflit au-delà de
-  « dernier écrivain gagne ». Limite connue : seules les *écritures* sont mises
-  en file — les référentiels (clients, tarifs) sont juste re-fetchés à chaque
-  chargement d'écran, avec un repli statique s'ils échouent, mais ce repli n'a
-  pas d'identifiant Supabase réel donc ces ventes-là ne peuvent pas être
-  enregistrées avant la prochaine connexion (voir `src/data/constants.js`).
+  reconnexion, dans l'ordre. Chaque écriture est un `upsert` sur une clé
+  primaire fabriquée sur le téléphone, donc rejouable sans doublon ; les
+  fiches soumises à `unique (date, lot_id)` portent un identifiant déduit de
+  ce couple, si bien qu'une ressaisie corrige la fiche du jour au lieu d'être
+  rejetée. Une écriture définitivement refusée est mise de côté au lieu de
+  bloquer la file, et s'affiche dans l'en-tête (`src/components/EtatSync.jsx`)
+  avec « Tout réessayer ». Pas de résolution de conflit au-delà de « dernier
+  écrivain gagne ».
+  **Ces `upsert` supposent que [docs/04-migration-file-idempotente.sql](docs/04-migration-file-idempotente.sql)
+  ait été exécuté dans Supabase** (policies RLS `for update`).
+- Limite connue : seules les *écritures* sont mises en file — les référentiels
+  (clients, tarifs) sont juste re-fetchés à chaque chargement d'écran, avec un
+  repli statique s'ils échouent, mais ce repli n'a pas d'identifiant Supabase
+  réel donc ces ventes-là ne peuvent pas être enregistrées avant la prochaine
+  connexion (voir `src/data/constants.js`).
 - PWA : manifest et icônes déjà fournis et branchés, service worker généré
   par `vite-plugin-pwa` au build.
 - `npm run build` a été vérifié (vite build + service worker générés sans

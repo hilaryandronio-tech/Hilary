@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { dLabel, today } from "./format";
+import EtatSync from "./EtatSync";
 import { useAuth } from "../context/AuthContext";
 
 // Chaque rôle arrive directement sur son écran principal après connexion
@@ -32,7 +33,10 @@ export default function Header() {
           <img src="/icones/icone-blanc-512.png" alt="Tama Ferme" />
           <div className="tf-logo">Tama<span>·</span>Ferme</div>
         </div>
-        <div className="tf-date">{dLabel(today())}</div>
+        <div className="tf-brand-etat">
+          <div className="tf-date">{dLabel(today())}</div>
+          <EtatSync />
+        </div>
       </div>
       <div className="tf-roles">
         {ecrans.map((e) => (

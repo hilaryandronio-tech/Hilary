@@ -6,7 +6,7 @@ import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
 import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
-import { enqueue } from "../lib/offlineQueue";
+import { enqueue, idStable } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 // Reference port of the prototype's Chef de ferme screen (docs/tama-app.jsx)
@@ -55,19 +55,29 @@ export default function ChefFerme() {
     const jobs = [];
 
     if (val("kg") || val("mort")) {
+      // La table n'accepte qu'une saisie par (date, bâtiment). En dérivant
+      // l'identifiant de ce couple, ressaisir le même soir corrige la ligne
+      // au lieu de buter sur la contrainte d'unicité.
+      const saisieId = await idStable("saisie_ferme", date, lotId);
       jobs.push(
         enqueue({
           table: "saisies_ferme",
-          payload: { date, lot_id: lotId, provende_kg: val("kg"), mortalite: val("mort"), auteur },
+          conflict: "id",
+          payload: { id: saisieId, date, lot_id: lotId, provende_kg: val("kg"), mortalite: val("mort"), auteur },
         })
       );
     }
     for (const c of CATEGORIES_CHARGES) {
       if (val("ch_" + c)) {
+        // Identifiant tiré au sort à chaque enregistrement, et non déduit de
+        // (date, catégorie) : rien n'interdit deux dépenses de carburant le
+        // même jour. L'identifiant sert juste à ce qu'une re-synchro rejoue
+        // la même ligne au lieu d'en créer une deuxième.
         jobs.push(
           enqueue({
             table: "charges",
-            payload: { date, categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
+            conflict: "id",
+            payload: { id: crypto.randomUUID(), date, categorie: c, montant: val("ch_" + c), origine: "ferme", auteur },
           })
         );
       }

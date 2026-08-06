@@ -95,9 +95,10 @@ export default function PointVente() {
   const peutEnregistrer =
     totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0 || totalCharges > 0;
 
+  // Les lignes portent une clé étrangère vers l'en-tête de vente : tout part
+  // en file d'attente dans l'ordre de saisie, jamais en parallèle.
   const enregistrer = async () => {
     const auteur = profil?.id;
-    const jobs = [];
 
     for (const cl of clients) {
       const lignesCalibre = CALIBRES.filter((c) => val(`v_${slug(cl.nom)}_${c}`) > 0);
@@ -108,60 +109,74 @@ export default function PointVente() {
       }
       const venteId = crypto.randomUUID();
       const montant = lignesCalibre.reduce((s, c) => s + venteClient(cl, c), 0);
-      jobs.push(
-        enqueue({
-          table: "ventes",
-          payload: { id: venteId, date, canal: "client", client_id: cl.id, montant, credit: !paye(slug(cl.nom)), auteur },
-        })
-      );
-      jobs.push(
-        enqueue({
-          table: "vente_lignes",
-          payload: lignesCalibre.map((c) => ({
-            vente_id: venteId,
-            calibre: c,
-            oeufs: val(`v_${slug(cl.nom)}_${c}`),
-            prix_unit: prixClient(cl, c),
-          })),
-        })
-      );
+      await enqueue({
+        table: "ventes",
+        conflict: "id",
+        groupe: venteId,
+        payload: { id: venteId, date, canal: "client", client_id: cl.id, montant, credit: !paye(slug(cl.nom)), auteur },
+      });
+      await enqueue({
+        table: "vente_lignes",
+        conflict: "vente_id,calibre",
+        groupe: venteId,
+        payload: lignesCalibre.map((c) => ({
+          vente_id: venteId,
+          calibre: c,
+          oeufs: val(`v_${slug(cl.nom)}_${c}`),
+          prix_unit: prixClient(cl, c),
+        })),
+      });
     }
 
     const lignesDetail = CALIBRES_DETAIL.filter((c) => val("d" + c) > 0);
     if (lignesDetail.length) {
       const venteId = crypto.randomUUID();
-      jobs.push(
-        enqueue({
-          table: "ventes",
-          payload: { id: venteId, date, canal: "detail", montant: totalDetail, credit: false, auteur },
-        })
-      );
-      jobs.push(
-        enqueue({
-          table: "vente_lignes",
-          payload: lignesDetail.map((c) => ({
-            vente_id: venteId,
-            calibre: c,
-            oeufs: val("d" + c),
-            prix_unit: prixBase[c],
-          })),
-        })
-      );
+      await enqueue({
+        table: "ventes",
+        conflict: "id",
+        groupe: venteId,
+        payload: { id: venteId, date, canal: "detail", montant: totalDetail, credit: false, auteur },
+      });
+      await enqueue({
+        table: "vente_lignes",
+        conflict: "vente_id,calibre",
+        groupe: venteId,
+        payload: lignesDetail.map((c) => ({
+          vente_id: venteId,
+          calibre: c,
+          oeufs: val("d" + c),
+          prix_unit: prixBase[c],
+        })),
+      });
     }
 
+    // Identifiants tirés au sort, pas déduits du jour : deux clôtures de caisse
+    // le même jour restent deux recettes distinctes. Ils servent uniquement à
+    // ce qu'une re-synchro rejoue la même ligne au lieu de la dupliquer.
     if (val("rec")) {
-      jobs.push(enqueue({ table: "ventes", payload: { date, canal: "detail", montant: val("rec"), credit: false, auteur } }));
+      await enqueue({
+        table: "ventes",
+        conflict: "id",
+        payload: { id: crypto.randomUUID(), date, canal: "detail", montant: val("rec"), credit: false, auteur },
+      });
     }
     if (val("cred")) {
-      jobs.push(enqueue({ table: "ventes", payload: { date, canal: "detail", montant: val("cred"), credit: true, auteur } }));
+      await enqueue({
+        table: "ventes",
+        conflict: "id",
+        payload: { id: crypto.randomUUID(), date, canal: "detail", montant: val("cred"), credit: true, auteur },
+      });
     }
     for (const c of CATEGORIES_CHARGES_VENTE) {
       if (val("ch_" + c)) {
-        jobs.push(enqueue({ table: "charges", payload: { date, categorie: c, montant: val("ch_" + c), origine: "point_vente", auteur } }));
+        await enqueue({
+          table: "charges",
+          conflict: "id",
+          payload: { id: crypto.randomUUID(), date, categorie: c, montant: val("ch_" + c), origine: "point_vente", auteur },
+        });
       }
     }
 
-    await Promise.all(jobs);
     setDraft({});
     setFlash((f) => f || (date === today() ? "Caisse clôturée." : `Caisse clôturée pour le ${dLabel(date)}.`));
     setTimeout(() => setFlash(""), 3200);

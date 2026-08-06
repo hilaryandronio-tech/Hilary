@@ -6,7 +6,7 @@ import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES, SEED_LOTS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
-import { enqueue, onQueueChange } from "../lib/offlineQueue";
+import { enqueue, idStable, onQueueChange } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 const enPonteSeed = SEED_LOTS.filter((l) => l.en_ponte).map((l) => ({ id: l.id, nom: l.nom, vivant: l.effectif_initial }));
@@ -78,37 +78,39 @@ export default function Magasiniere() {
 
   const enregistrer = async () => {
     const auteur = profil?.id;
-    const jobs = [];
 
     // Un seul en-tête pontes par (date, bâtiment) — la grille alvéoles et la
     // collecte au détail alimentent les mêmes lignes, sommées par calibre,
     // sinon deux en-têtes le même jour pour le même bâtiment violeraient la
     // contrainte d'unicité de la table.
-    const lignes = CALIBRES.map((c) => ({ calibre: c, oeufs: val("c" + c) * ALV + val("d" + c) }))
-      .filter((l) => l.oeufs > 0);
+    //
+    // L'identifiant se déduit de (date, bâtiment) : ré-enregistrer une fiche
+    // corrige celle du jour au lieu d'être rejetée par cette contrainte. Les
+    // lignes partent toutes, y compris à zéro, sans quoi un calibre saisi par
+    // erreur puis retiré resterait dans la fiche corrigée.
+    const ponteId = await idStable("ponte", date, lotId);
     // Les cassés se vendent (500 Ar), donc comptent aussi comme production —
     // pas seulement comme dégât — en plus de rester dans oeufs_casses ci-dessous.
-    if (val("casse")) lignes.push({ calibre: "CASSE", oeufs: val("casse") });
+    const lignes = [
+      ...CALIBRES.map((c) => ({ calibre: c, oeufs: val("c" + c) * ALV + val("d" + c) })),
+      { calibre: "CASSE", oeufs: val("casse") },
+    ];
 
-    if (lignes.length || val("casse") || val("sale")) {
-      const ponteId = crypto.randomUUID();
-      jobs.push(
-        enqueue({
-          table: "pontes",
-          payload: { id: ponteId, date, lot_id: lotId, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
-        })
-      );
-      if (lignes.length) {
-        jobs.push(
-          enqueue({
-            table: "ponte_lignes",
-            payload: lignes.map((l) => ({ ponte_id: ponteId, calibre: l.calibre, oeufs: l.oeufs })),
-          })
-        );
-      }
-    }
+    // En file d'attente l'un après l'autre : les lignes portent une clé
+    // étrangère vers l'en-tête, elles doivent partir après lui.
+    await enqueue({
+      table: "pontes",
+      conflict: "id",
+      groupe: ponteId,
+      payload: { id: ponteId, date, lot_id: lotId, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
+    });
+    await enqueue({
+      table: "ponte_lignes",
+      conflict: "ponte_id,calibre",
+      groupe: ponteId,
+      payload: lignes.map((l) => ({ ponte_id: ponteId, calibre: l.calibre, oeufs: l.oeufs })),
+    });
 
-    await Promise.all(jobs);
     setDejaEnregistre(true);
     setFlash(date === today() ? "Fiche de ponte enregistrée." : `Fiche de ponte enregistrée pour le ${dLabel(date)}.`);
     setTimeout(() => setFlash(""), 2600);
