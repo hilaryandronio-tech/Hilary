@@ -5,7 +5,7 @@ import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
 import { fmt, today, dLabel } from "../components/format";
-import { ALV, CALIBRES } from "../data/constants";
+import { ALV, CALIBRES, PRIX_CASSE } from "../data/constants";
 import { enqueue, idStable } from "../lib/offlineQueue";
 import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
@@ -44,7 +44,9 @@ export default function Magasiniere() {
   const oeufsDraft = alvDraft * ALV + detailOeufsDraft + val("casse");
   const tauxPonte = lot?.vivant ? (oeufsDraft / lot.vivant) * 100 : 0;
 
-  const peutEnregistrer = !dejaEnregistre && (oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0);
+  const peutEnregistrer =
+    !dejaEnregistre &&
+    (oeufsDraft > 0 || val("casse") > 0 || val("sale") > 0 || val("perdu") > 0);
 
   // Une exception ici interrompait la fonction sans un mot : pas de ligne en
   // file, donc pas de badge non plus, et la fiche semblait enregistrée alors
@@ -85,7 +87,13 @@ export default function Magasiniere() {
       table: "pontes",
       conflict: "id",
       groupe: ponteId,
-      payload: { id: ponteId, date, lot_id: lotId, oeufs_casses: val("casse"), oeufs_sales: val("sale"), auteur },
+      payload: {
+        id: ponteId, date, lot_id: lotId,
+        oeufs_casses: val("casse"),   // récupérables, vendus à part
+        oeufs_sales: val("sale"),     // nettoyés, comptés dans leur calibre
+        oeufs_perdus: val("perdu"),   // irrécupérables, seule vraie perte
+        auteur,
+      },
     });
     await enqueue({
       table: "ponte_lignes",
@@ -155,13 +163,30 @@ export default function Magasiniere() {
           <p className="tf-note">Pour compter des œufs hors alvéole complète — ramassage partiel, casier entamé.</p>
         </div>
 
+        {/* Trois sorts différents, et un seul est une perte. Les nommer
+            « Dégâts » en bloc, en brique, poussait à ne pas compter dans leur
+            calibre des œufs qui se vendent — la production du jour s'en
+            trouvait sous-évaluée. */}
         <div className="tf-card">
-          <div className="tf-cardhead"><span className="tf-cardtitle">Dégâts</span></div>
-          <div className="tf-grid2">
-            <NumField label="Cassés" unit="œufs" tone="brick" value={val("casse")} onOpen={() => open("casse", "Œufs cassés", "œufs")} />
-            <NumField label="Sales / fêlés" unit="œufs" tone="brick" value={val("sale")} onOpen={() => open("sale", "Œufs sales ou fêlés", "œufs")} />
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Casse, sales, perte</span>
           </div>
-          <p className="tf-note">Au-delà de 2 % de la collecte, il y a un problème de nid, de ramassage ou de calcium.</p>
+          <div className="tf-grid4">
+            <NumField label="Cassés" unit="œufs" value={val("casse")}
+              detail={val("casse") ? `${fmt(val("casse") * PRIX_CASSE)} Ar` : null}
+              onOpen={() => open("casse", `Cassés vendables — ${PRIX_CASSE} Ar`, "œufs")} />
+            <NumField label="Sales" unit="œufs" value={val("sale")}
+              onOpen={() => open("sale", "Sales à nettoyer", "œufs")} />
+            <NumField label="Perdus" unit="œufs" tone="brick" value={val("perdu")}
+              onOpen={() => open("perdu", "Dégâts irrécupérables", "œufs")} />
+          </div>
+          <p className="tf-note">
+            <strong>Cassés</strong> : récupérables, vendus à part à {PRIX_CASSE} Ar — déjà compris
+            dans le total plus haut. <strong>Sales</strong> : nettoyés puis vendus au prix normal,
+            donc <strong>compte-les aussi dans leur calibre</strong> ; ce compteur-ci ne suit que la
+            qualité du ramassage. <strong>Perdus</strong> : irrécupérables, la seule vraie perte.
+            Au-delà de 2 % de la collecte, il y a un problème de nid, de ramassage ou de calcium.
+          </p>
         </div>
       </main>
 
