@@ -65,3 +65,19 @@ create policy corriger_charge on charges for update
 --      using      (mon_role() in ('point_vente','direction'))
 --      with check (mon_role() in ('point_vente','direction'));
 -- =====================================================================
+
+
+-- =====================================================================
+--  Écriture sur `lots` — ajout du 2026-08-07
+--
+--  L'écran Bilan laisse la direction saisir l'effectif réellement compté
+--  dans un bâtiment. La valeur est reportée dans `lots.effectif_initial`
+--  de façon que `v_effectif.vivant` retombe sur le nombre saisi, mortalité
+--  cumulée comprise. Il faut donc autoriser la direction à écrire sur
+--  `lots`, qui n'était jusqu'ici accessible qu'en lecture.
+-- =====================================================================
+
+drop   policy if exists ecrire_lots on lots;
+create policy ecrire_lots on lots for update
+  using      (mon_role() = 'direction')
+  with check (mon_role() = 'direction');

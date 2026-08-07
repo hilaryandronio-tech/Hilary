@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
+import Cheptel from "../components/Cheptel";
 import { fmt, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue } from "../lib/offlineQueue";
@@ -131,6 +132,8 @@ export default function Bilan() {
             Si tes charges saisies dépassent 25 %, il y a une fuite à chercher.
           </p>
         </div>
+
+        <Cheptel />
 
         <div className="tf-card">
           <div className="tf-cardhead"><span className="tf-cardtitle">Paramètres de coût</span></div>
