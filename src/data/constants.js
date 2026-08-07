@@ -21,6 +21,7 @@ export const CLIENTS_FALLBACK = [
   { id: null, nom: "Leader Price", tarifs: { M1: 760 } },
   { id: null, nom: "La Terrasse", tarifs: { L1: 750 } },
   { id: null, nom: "Mercy Ships", tarifs: { L1: 800 } },
+  { id: null, nom: "Masteva", tarifs: { L2: 800 } },
 ];
 
 export const SEED_LOTS = [
