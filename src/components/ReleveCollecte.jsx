@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, today, dLabel } from "./format";
-import { CALIBRES } from "../data/constants";
+import { CALIBRES, POIDS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "./AlerteEchecs";
@@ -118,7 +118,10 @@ export default function ReleveCollecte({ date, lots }) {
               const total = parLot.reduce((s, n) => s + n, 0);
               return (
                 <tr key={c}>
-                  <th>{libelle(c)}</th>
+                  <th>
+                    {libelle(c)}
+                    <span className="tf-sous">{POIDS[c]}</span>
+                  </th>
                   {parLot.map((n, i) => <td key={lots[i].id}>{fmt(n)}</td>)}
                   <td>{fmt(total)}</td>
                 </tr>

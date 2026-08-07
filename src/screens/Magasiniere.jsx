@@ -5,7 +5,7 @@ import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
 import { fmt, today, dLabel } from "../components/format";
-import { ALV, CALIBRES, PRIX_CASSE } from "../data/constants";
+import { ALV, CALIBRES, POIDS, PRIX_CASSE } from "../data/constants";
 import { enqueue, idStable } from "../lib/offlineQueue";
 import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
@@ -136,9 +136,9 @@ export default function Magasiniere() {
           </div>
           <div className="tf-grid4">
             {CALIBRES.map((c) => (
-              <NumField key={c} label={c} unit="alv" value={val("c" + c)}
+              <NumField key={c} label={c} sous={POIDS[c]} unit="alv" value={val("c" + c)}
                 detail={val("c" + c) ? `${fmt(val("c" + c) * ALV)} œufs` : null}
-                onOpen={() => open("c" + c, `Taille ${c}`, "alv")} />
+                onOpen={() => open("c" + c, `${c} · ${POIDS[c]}`, "alv")} />
             ))}
           </div>
           <div className="tf-live">
@@ -156,8 +156,8 @@ export default function Magasiniere() {
           </div>
           <div className="tf-grid4">
             {CALIBRES.map((c) => (
-              <NumField key={c} label={c} unit="œufs" value={val("d" + c)}
-                onOpen={() => open("d" + c, `Taille ${c}`, "œufs")} />
+              <NumField key={c} label={c} sous={POIDS[c]} unit="œufs" value={val("d" + c)}
+                onOpen={() => open("d" + c, `${c} · ${POIDS[c]}`, "œufs")} />
             ))}
           </div>
           <p className="tf-note">Pour compter des œufs hors alvéole complète — ramassage partiel, casier entamé.</p>

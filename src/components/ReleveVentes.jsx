@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, today, dLabel } from "./format";
-import { CALIBRES } from "../data/constants";
+import { CALIBRES, POIDS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "./AlerteEchecs";
@@ -155,7 +155,10 @@ export default function ReleveVentes({ date }) {
               const total = parCanal.reduce((s, n) => s + n, 0);
               return (
                 <tr key={cal}>
-                  <th>{libelle(cal)}</th>
+                  <th>
+                    {libelle(cal)}
+                    <span className="tf-sous">{POIDS[cal]}</span>
+                  </th>
                   {parCanal.map((n, i) => <td key={CANAUX[i].code}>{fmt(n)}</td>)}
                   <td>{fmt(total)}</td>
                 </tr>

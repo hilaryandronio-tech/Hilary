@@ -83,6 +83,10 @@
 .tf-field[data-filled="1"] { background:var(--card); border-color:var(--ink); }
 .tf-label { display:block; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
             color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-bottom:3px; }
+/* Tranche de poids sous le code du calibre. Discrète mais toujours là : c'est
+   ce que l'équipe lit sur la balance et écrit sur ses feuilles. */
+.tf-sous { display:block; font-size:9px; letter-spacing:0.04em; color:var(--muted);
+           font-family:'IBM Plex Mono',monospace; margin:-2px 0 3px; white-space:nowrap; }
 .tf-value { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:21px;
             line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; }
 /* Le "0" reste dans la couleur normale du texte (var(--ink)) — un gris clair

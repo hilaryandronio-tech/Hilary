@@ -8,6 +8,22 @@ export const CALIBRES = ["S1", "S2", "M1", "M2", "L1", "L2", "XL1", "XL2"];
 
 export const PRIX_BASE = { S1: 600, S2: 620, M1: 650, M2: 660, L1: 670, L2: 680, XL1: 700, XL2: 750 };
 
+// Les tranches de poids que l'équipe utilise réellement sur ses feuilles de
+// compta — elles s'alignent une pour une sur les huit calibres, dans l'ordre.
+// Le code court reste la référence (il est en base), le poids est là pour que
+// personne n'ait à traduire de tête entre la balance et l'écran.
+export const POIDS = {
+  S1: "42–46 g",
+  S2: "47–56 g",
+  M1: "57–60 g",
+  M2: "61–63 g",
+  L1: "64–66 g",
+  L2: "67–69 g",
+  XL1: "70–74 g",
+  XL2: "75 g +",
+  CASSE: "hors calibre",
+};
+
 // Prix des œufs cassés — les sales/fêlés sont comptés à zéro aujourd'hui,
 // non tranché (docs/03-brief-technique.md section 6).
 export const PRIX_CASSE = 500;

@@ -5,7 +5,7 @@ import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveVentes from "../components/ReleveVentes";
 import { fmt, today, dLabel } from "../components/format";
-import { CALIBRES, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
+import { CALIBRES, POIDS, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue, uuid } from "../lib/offlineQueue";
 import { useClients } from "../lib/useClients";
@@ -243,11 +243,16 @@ export default function PointVente() {
               <div className="tf-grid4">
                 {CALIBRES.map((c) => {
                   const n = val(`v_${slug(client.nom)}_${c}`);
+                  // Le prix va dans la ligne déjà réservée sous la valeur, pas
+                  // dans le titre : un libellé long passait à la ligne et
+                  // cassait l'alignement des rangées.
                   return (
-                    <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit="œufs" value={n}
-                      detail={n ? `${fmt(n * prixClient(client, c))} Ar` : null}
+                    <NumField key={c} label={c} sous={POIDS[c]}
+                      unit="œufs" value={n}
+                      detail={n ? `${fmt(n * prixClient(client, c))} Ar` : `${prixClient(client, c)} Ar/œuf`}
                       onOpen={client.id
-                        ? () => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "œufs")
+                        ? () => open(`v_${slug(client.nom)}_${c}`,
+                            `${client.nom} — ${c} (${POIDS[c]}) à ${prixClient(client, c)} Ar`, "œufs")
                         : undefined} />
                   );
                 })}
@@ -277,9 +282,10 @@ export default function PointVente() {
           </div>
           <div className="tf-grid4">
             {CALIBRES_DETAIL.map((c) => (
-              <NumField key={c} label={`${libelle(c)} · ${prixBase[c]}`} unit="œufs" value={val("d" + c)}
-                detail={val("d" + c) ? `${fmt(val("d" + c) * prixBase[c])} Ar` : null}
-                onOpen={() => open("d" + c, `${libelle(c)} — ${prixBase[c]} Ar/œuf`, "œufs")} />
+              <NumField key={c} label={libelle(c)} sous={POIDS[c]}
+                unit="œufs" value={val("d" + c)}
+                detail={val("d" + c) ? `${fmt(val("d" + c) * prixBase[c])} Ar` : `${prixBase[c]} Ar/œuf`}
+                onOpen={() => open("d" + c, `${libelle(c)} (${POIDS[c]}) — ${prixBase[c]} Ar/œuf`, "œufs")} />
             ))}
           </div>
           <div className="tf-live">
@@ -325,9 +331,9 @@ export default function PointVente() {
           </div>
           <div className="tf-grid4">
             {CALIBRES_DETAIL.map((c) => (
-              <NumField key={c} label={libelle(c)} unit="Ar" value={prixBase[c]}
+              <NumField key={c} label={libelle(c)} sous={POIDS[c]} unit="Ar" value={prixBase[c]}
                 onOpen={peutModifierPrix
-                  ? () => setPad({ key: `prix_${c}`, label: `Prix ${libelle(c)}`, unit: "Ar", value: prixBase[c] })
+                  ? () => setPad({ key: `prix_${c}`, label: `Prix ${libelle(c)} (${POIDS[c]})`, unit: "Ar", value: prixBase[c] })
                   : undefined} />
             ))}
           </div>
