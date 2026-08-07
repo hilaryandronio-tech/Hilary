@@ -23,7 +23,7 @@ export default function Cheptel() {
   const charger = () => {
     supabase
       .from("v_effectif")
-      .select("lot_id, nom, en_ponte, effectif_initial, vivant")
+      .select("lot_id, nom, en_ponte, effectif_initial, vivant, prix_provende_kg")
       .then(({ data, error }) => {
         if (error || !data) return;
         setLots([...data].sort((a, b) => a.lot_id.localeCompare(b.lot_id)));
@@ -62,8 +62,23 @@ export default function Cheptel() {
     setTimeout(() => setFlash(""), 2600);
   };
 
+  // Le tarif du fournisseur pour ce bâtiment. Il ne touche pas aux saisies
+  // déjà enregistrées : celles-ci ont figé leur prix le soir même.
+  const enregistrerPrix = async (lotId, prix) => {
+    setLots((ls) => ls.map((l) => (l.lot_id === lotId ? { ...l, prix_provende_kg: prix } : l)));
+    await enqueue({
+      table: "lots",
+      kind: "update",
+      payload: { prix_provende_kg: prix },
+      match: { id: lotId },
+    });
+    setFlash(`${lotId} : provende à ${fmt(prix)} Ar/kg.`);
+    setTimeout(() => setFlash(""), 2600);
+  };
+
   const ouvrir = (lot) =>
     setPad({
+      champ: "vivant",
       key: lot.lot_id,
       label: `${lot.lot_id} — poules vivantes`,
       unit: "poules",
@@ -71,8 +86,21 @@ export default function Cheptel() {
       depart: lot.vivant,
     });
 
+  const ouvrirPrix = (lot) =>
+    setPad({
+      champ: "prix",
+      key: lot.lot_id,
+      label: `${lot.lot_id} — provende, prix du kilo`,
+      unit: "Ar/kg",
+      value: lot.prix_provende_kg ?? 0,
+      depart: lot.prix_provende_kg ?? 0,
+    });
+
   const fermer = () => {
-    if (pad && pad.value !== pad.depart) enregistrer(pad.key, pad.value);
+    if (pad && pad.value !== pad.depart) {
+      if (pad.champ === "prix") enregistrerPrix(pad.key, pad.value);
+      else enregistrer(pad.key, pad.value);
+    }
     setPad(null);
   };
 
@@ -88,18 +116,26 @@ export default function Cheptel() {
       ) : (
         <div className="tf-fields">
           {lots.map((l) => (
-            <NumField
-              key={l.lot_id}
-              label={`${l.lot_id} · ${l.nom}${l.en_ponte ? "" : " (poulettes)"}`}
-              unit="poules"
-              value={l.vivant}
-              detail={
-                l.effectif_initial - l.vivant > 0
-                  ? `${fmt(l.effectif_initial - l.vivant)} mortes depuis la mise en place`
-                  : null
-              }
-              onOpen={() => ouvrir(l)}
-            />
+            <div className="tf-grid2" key={l.lot_id}>
+              <NumField
+                label={`${l.lot_id} · ${l.nom}${l.en_ponte ? "" : " (poulettes)"}`}
+                unit="poules"
+                value={l.vivant}
+                detail={
+                  l.effectif_initial - l.vivant > 0
+                    ? `${fmt(l.effectif_initial - l.vivant)} mortes`
+                    : null
+                }
+                onOpen={() => ouvrir(l)}
+              />
+              <NumField
+                label="Provende"
+                unit="Ar/kg"
+                value={l.prix_provende_kg ?? 0}
+                detail={null}
+                onOpen={() => ouvrirPrix(l)}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -108,6 +144,9 @@ export default function Cheptel() {
         Saisis le nombre de poules réellement comptées dans le bâtiment. La mortalité déjà
         enregistrée reste déduite pour les jours suivants — un comptage corrige l'écart accumulé,
         il n'efface pas les saisies du chef de ferme.
+        Le <strong>prix de la provende</strong> vaut par bâtiment, les vagues n'ayant ni le même
+        aliment ni le même tarif ; le changer n'affecte que les saisies à venir, les précédentes
+        ont figé leur prix le soir même.
       </p>
 
       {flash && <div className="tf-flash">{flash}</div>}

@@ -14,7 +14,7 @@ import { enqueue } from "../lib/offlineQueue";
 export default function Bilan() {
   const [periode, setPeriode] = useState("mois");
   const [params, setParams] = useState({ prix_provende_kg: 0, cout_poulette: 0, duree_ponte_sem: 52 });
-  const [agg, setAgg] = useState({ ca: 0, oeufs: 0, provendeKg: 0, chargesSaisies: 0, enPonte: 0 });
+  const [agg, setAgg] = useState({ ca: 0, oeufs: 0, provendeKg: 0, coutProvende: 0, chargesSaisies: 0, enPonte: 0 });
   const [pad, setPad] = useState(null);
 
   const from = () => {
@@ -38,14 +38,17 @@ export default function Bilan() {
 
     const { data: jrs } = await supabase
       .from("v_journalier")
-      .select("oeufs, provende_kg, charges, poules_en_ponte")
+      .select("oeufs, provende_kg, cout_provende, charges, poules_en_ponte")
       .gte("date", debut);
     const oeufs = (jrs ?? []).reduce((s, j) => s + j.oeufs, 0);
     const provendeKg = (jrs ?? []).reduce((s, j) => s + j.provende_kg, 0);
+    // Le coût vient de la vue, pas d'une multiplication ici : chaque saisie
+    // porte le prix de son bâtiment, et les vagues n'ont pas le même tarif.
+    const coutProvende = (jrs ?? []).reduce((s, j) => s + Number(j.cout_provende ?? 0), 0);
     const chargesSaisies = (jrs ?? []).reduce((s, j) => s + j.charges, 0);
     const enPonte = jrs?.[0]?.poules_en_ponte ?? 0;
 
-    setAgg({ ca, oeufs, provendeKg, chargesSaisies, enPonte });
+    setAgg({ ca, oeufs, provendeKg, coutProvende, chargesSaisies, enPonte });
   };
 
   useEffect(() => {
@@ -58,13 +61,16 @@ export default function Bilan() {
     await enqueue({ table: "parametres", kind: "update", payload: { valeur, maj: new Date().toISOString() }, match: { cle } });
   };
 
-  const coutProvende = agg.provendeKg * params.prix_provende_kg;
+  const coutProvende = agg.coutProvende;
   const amortissement = (params.cout_poulette / (params.duree_ponte_sem * 7)) * agg.enPonte * jours;
   const total = agg.chargesSaisies + coutProvende + amortissement;
   const benefice = agg.ca - total;
   const revient = agg.oeufs ? total / agg.oeufs : 0;
   const prixMoyen = agg.oeufs ? agg.ca / agg.oeufs : 0;
-  const manquant = !params.prix_provende_kg || !params.cout_poulette;
+  // Le prix de la provende est désormais porté par chaque bâtiment (carte
+  // Cheptel) : il ne peut plus manquer globalement. Reste le coût d'une
+  // poulette, sans lequel l'amortissement — donc le bénéfice — est faux.
+  const manquant = !params.cout_poulette;
 
   const lignes = [
     ["Provende", coutProvende],
@@ -89,8 +95,8 @@ export default function Bilan() {
         {manquant && (
           <div className="tf-card" style={{ borderLeft: "4px solid var(--brick)" }}>
             <p className="tf-empty">
-              Renseigne le prix du kg de provende et le coût d'une poulette plus bas — sans ces deux chiffres,
-              le bénéfice affiché est faux.
+              Renseigne le coût d'une poulette plus bas — sans ce chiffre, l'amortissement est nul
+              et le bénéfice affiché est faux.
             </p>
           </div>
         )}
@@ -138,8 +144,6 @@ export default function Bilan() {
         <div className="tf-card">
           <div className="tf-cardhead"><span className="tf-cardtitle">Paramètres de coût</span></div>
           <div className="tf-fields">
-            <NumField label="Prix du kg de provende" unit="Ar" value={params.prix_provende_kg}
-              onOpen={() => setPad({ key: "prix_provende_kg", label: "Prix du kg de provende", unit: "Ar", value: params.prix_provende_kg })} />
             <NumField label="Coût d'une poulette à l'entrée en ponte" unit="Ar" value={params.cout_poulette}
               onOpen={() => setPad({ key: "cout_poulette", label: "Coût d'une poulette", unit: "Ar", value: params.cout_poulette })} />
             <NumField label="Durée de ponte prévue" unit="semaines" value={params.duree_ponte_sem}
@@ -147,7 +151,8 @@ export default function Bilan() {
           </div>
           <p className="tf-note">
             Achat de la poulette + élevage jusqu'à la ponte, étalé sur la durée de ponte.
-            Mets à jour le prix de la provende à chaque changement de tarif fournisseur.
+            Le prix de la provende, lui, se règle bâtiment par bâtiment dans la carte Cheptel :
+            les vagues n'ont pas le même aliment ni le même tarif.
           </p>
         </div>
       </main>

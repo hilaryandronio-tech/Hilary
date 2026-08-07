@@ -26,10 +26,13 @@ export default function ChefFerme() {
   useEffect(() => {
     supabase
       .from("v_effectif")
-      .select("lot_id, nom, en_ponte, vivant")
+      .select("lot_id, nom, en_ponte, vivant, prix_provende_kg")
       .then(({ data, error }) => {
         if (error || !data) return; // hors ligne : on garde le seed local
-        setLots(data.map((l) => ({ id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant })));
+        setLots(data.map((l) => ({
+          id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
+          prixProvende: l.prix_provende_kg,
+        })));
       });
   }, []);
 
@@ -76,7 +79,15 @@ export default function ChefFerme() {
         enqueue({
           table: "saisies_ferme",
           conflict: "id",
-          payload: { id: saisieId, date, lot_id: lotId, provende_kg: val("kg"), mortalite: val("mort"), auteur },
+          // Le prix est figé ici, comme `vente_lignes.prix_unit` l'est à la
+          // vente : une hausse du fournisseur ne doit pas réécrire le coût
+          // des mois déjà clos.
+          payload: {
+            id: saisieId, date, lot_id: lotId,
+            provende_kg: val("kg"), mortalite: val("mort"),
+            prix_provende_kg: lot?.prixProvende ?? null,
+            auteur,
+          },
         })
       );
     }
