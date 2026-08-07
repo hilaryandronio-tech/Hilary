@@ -228,6 +228,16 @@ export default function PointVente() {
                 onClick={() => setClientKey(slug(cl.nom))}>{cl.nom}</button>
             ))}
           </div>
+          {/* Sans identifiant Supabase, la commande sera refusée à
+              l'enregistrement. Le dire ici, en clair et en permanence : le
+              message de trois secondes après l'appui passait inaperçu, et
+              c'est une commande entière qui disparaissait. */}
+          {client && !client.id && (
+            <p className="tf-note" data-alerte="1">
+              {client.nom} n'est pas synchronisé depuis Supabase : impossible d'enregistrer une
+              commande à son nom. Reconnecte-toi une fois en ligne, puis recharge l'écran.
+            </p>
+          )}
           {client && (
             <>
               <div className="tf-grid4">
@@ -236,7 +246,9 @@ export default function PointVente() {
                   return (
                     <NumField key={c} label={`${c} · ${prixClient(client, c)}`} unit="œufs" value={n}
                       detail={n ? `${fmt(n * prixClient(client, c))} Ar` : null}
-                      onOpen={() => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "œufs")} />
+                      onOpen={client.id
+                        ? () => open(`v_${slug(client.nom)}_${c}`, `${client.nom} — ${c} à ${prixClient(client, c)} Ar`, "œufs")
+                        : undefined} />
                   );
                 })}
               </div>
