@@ -28,10 +28,22 @@ const decalerMois = (mois, n) => {
 const labelMois = (mois) =>
   new Date(mois + "-01T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
+// Le règlement n'est plus un drapeau sur la vente mais une somme de lignes
+// datées (docs/05-migration-encaissement-partiel.sql) : une livraison peut
+// être réglée en plusieurs fois, et le statut doit le dire.
+const totalRegle = (l) => (l.reglements ?? []).reduce((s, r) => s + r.montant, 0);
+
 function statut(l) {
   if (l.enAttente) return { texte: "En attente de synchronisation", alerte: false };
   if (!l.credit) return { texte: "Payée comptant", alerte: false };
-  if (l.solde) return { texte: `Encaissée le ${dLabel(l.date_solde)}`, alerte: false };
+  const regle = totalRegle(l);
+  if (regle >= l.montant) {
+    const dernier = (l.reglements ?? []).map((r) => r.date).sort().at(-1);
+    return { texte: `Encaissée le ${dLabel(dernier)}`, alerte: false };
+  }
+  if (regle > 0) {
+    return { texte: `À crédit · ${fmt(regle)} sur ${fmt(l.montant)} réglés`, alerte: true };
+  }
   return { texte: "À crédit · non réglée", alerte: true };
 }
 
@@ -50,7 +62,7 @@ export default function Clients() {
     const [debut, fin] = bornesMois(mois);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, montant, credit, solde, date_solde, vente_lignes(calibre, oeufs, prix_unit)")
+      .select("id, date, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant)")
       .eq("client_id", client.id)
       .gte("date", debut)
       .lte("date", fin)
@@ -107,9 +119,11 @@ export default function Clients() {
     [file, serveur]
   );
   const totalMois = livraisons.reduce((s, l) => s + (l.montant ?? 0), 0);
+  // Reste dû = ce qui a été livré à crédit moins ce qui a été réglé dessus,
+  // règlements partiels compris.
   const restantDu = livraisons
-    .filter((l) => l.credit && !l.solde)
-    .reduce((s, l) => s + (l.montant ?? 0), 0);
+    .filter((l) => l.credit)
+    .reduce((s, l) => s + Math.max(0, (l.montant ?? 0) - totalRegle(l)), 0);
   const moisFutur = decalerMois(mois, 1) > moisCourant();
 
   return (
