@@ -178,13 +178,13 @@ export default function Magasiniere() {
             <NumField label="Sales" unit="œufs" value={val("sale")}
               onOpen={() => open("sale", "Sales à nettoyer", "œufs")} />
             <NumField label="Perdus" unit="œufs" tone="brick" value={val("perdu")}
-              onOpen={() => open("perdu", "Dégâts irrécupérables", "œufs")} />
+              onOpen={() => open("perdu", "Irrécupérables — perdus et fêlés", "œufs")} />
           </div>
           <p className="tf-note">
             <strong>Cassés</strong> : récupérables, vendus à part à {PRIX_CASSE} Ar — déjà compris
             dans le total plus haut. <strong>Sales</strong> : nettoyés puis vendus au prix normal,
             donc <strong>compte-les aussi dans leur calibre</strong> ; ce compteur-ci ne suit que la
-            qualité du ramassage. <strong>Perdus</strong> : irrécupérables, la seule vraie perte.
+            qualité du ramassage. <strong>Perdus</strong> : irrécupérables, <strong>fêlés compris</strong> — la seule vraie perte.
             Au-delà de 2 % de la collecte, il y a un problème de nid, de ramassage ou de calcium.
           </p>
         </div>
