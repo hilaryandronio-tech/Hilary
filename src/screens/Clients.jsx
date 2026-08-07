@@ -4,6 +4,7 @@ import { fmt, dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "../components/AlerteEchecs";
+import ChoixClient from "../components/ChoixClient";
 import { useClients } from "../lib/useClients";
 
 const TABLES = ["ventes", "vente_lignes"];
@@ -134,12 +135,7 @@ export default function Clients() {
         <h1 className="tf-h1">Historique des livraisons</h1>
         <p className="tf-sub">Toutes les livraisons du client, réglées ou non, mois par mois.</p>
 
-        <div className="tf-chips">
-          {clients.map((c) => (
-            <button key={c.nom} className="tf-chip" data-on={client?.nom === c.nom ? 1 : 0}
-              onClick={() => setClientNom(c.nom)}>{c.nom}</button>
-          ))}
-        </div>
+        <ChoixClient clients={clients} selection={client?.nom} onSelect={setClientNom} />
 
         <div className="tf-dateselect">
           <button className="tf-dateselect-nav" onClick={() => setMois(decalerMois(mois, -1))}

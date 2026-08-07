@@ -106,7 +106,24 @@
 .tf-field:disabled .tf-value { color:var(--ink); }
 .tf-field:disabled .tf-label, .tf-field:disabled .tf-unit { color:var(--muted); }
 
+/* Recherche de client — le seul champ texte de l'application, les autres
+   saisies passent par le pavé numérique. */
+.tf-recherche { width:100%; box-sizing:border-box; border:1px solid var(--line);
+                border-radius:2px; background:var(--field); color:var(--ink);
+                padding:11px 12px; font-size:15px; margin-bottom:8px;
+                font-family:'IBM Plex Sans',sans-serif; }
+.tf-recherche:focus-visible { outline:2px solid var(--yolk); outline-offset:1px; }
+
 .tf-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+/* Assez haut pour montrer trois rangées, au-delà on fait défiler : soixante
+   pastilles d'affilée repousseraient la grille de saisie hors de l'écran. */
+.tf-chips-scroll { max-height:126px; overflow-y:auto; align-content:flex-start; }
+
+/* À qui la saisie est destinée — impossible à confondre après une recherche. */
+.tf-destinataire { font-size:13px; color:var(--muted); margin:2px 0 8px;
+                   padding-left:9px; border-left:3px solid var(--yolk); }
+.tf-destinataire strong { color:var(--ink); font-size:15px;
+                          font-family:'IBM Plex Sans Condensed',sans-serif; }
 .tf-chip { border:1px solid var(--line); background:var(--field); border-radius:2px; padding:8px 11px;
            font-size:12px; font-weight:500; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;
            color:var(--muted); }

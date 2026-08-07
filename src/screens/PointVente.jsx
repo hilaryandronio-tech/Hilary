@@ -4,6 +4,7 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveVentes from "../components/ReleveVentes";
+import ChoixClient from "../components/ChoixClient";
 import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, POIDS, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
@@ -221,13 +222,12 @@ export default function PointVente() {
             <span className="tf-cardtitle">Vente client</span>
             <span className="tf-tag">EN ŒUFS</span>
           </div>
-          <div className="tf-chips">
-            {clients.map((cl) => (
-              <button key={cl.nom} className="tf-chip" data-on={clientKey === slug(cl.nom) ? 1 : 0}
-                data-dot={CALIBRES.some((c) => val(`v_${slug(cl.nom)}_${c}`)) ? 1 : 0}
-                onClick={() => setClientKey(slug(cl.nom))}>{cl.nom}</button>
-            ))}
-          </div>
+          <ChoixClient
+            clients={clients}
+            selection={client?.nom}
+            onSelect={(nom) => setClientKey(slug(nom))}
+            marque={(cl) => CALIBRES.some((c) => val(`v_${slug(cl.nom)}_${c}`))}
+          />
           {/* Sans identifiant Supabase, la commande sera refusée à
               l'enregistrement. Le dire ici, en clair et en permanence : le
               message de trois secondes après l'appui passait inaperçu, et
@@ -240,6 +240,12 @@ export default function PointVente() {
           )}
           {client && (
             <>
+              {/* Le nom du client destinataire, juste au-dessus de la grille :
+                  chercher un client sans cliquer sur sa pastille puis saisir
+                  enverrait la commande au précédent. */}
+              <div className="tf-destinataire">
+                Commande de <strong>{client.nom}</strong>
+              </div>
               <div className="tf-grid4">
                 {CALIBRES.map((c) => {
                   const n = val(`v_${slug(client.nom)}_${c}`);

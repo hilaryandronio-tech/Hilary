@@ -19,12 +19,17 @@ export function useClients() {
       .eq("actif", true)
       .then(({ data, error }) => {
         if (error || !data?.length) return; // hors ligne : liste sans id, non vendable
+        // Trié : PostgREST ne garantit aucun ordre, et une liste de soixante
+        // clients qui change de place d'un chargement à l'autre est
+        // impossible à parcourir.
         setClients(
-          data.map((c) => ({
-            id: c.id,
-            nom: c.nom,
-            tarifs: Object.fromEntries((c.tarifs_clients ?? []).map((t) => [t.calibre, t.prix])),
-          }))
+          data
+            .map((c) => ({
+              id: c.id,
+              nom: c.nom,
+              tarifs: Object.fromEntries((c.tarifs_clients ?? []).map((t) => [t.calibre, t.prix])),
+            }))
+            .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
         );
       });
   }, []);
