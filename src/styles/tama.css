@@ -62,23 +62,35 @@
           border:1px solid var(--line); padding:2px 6px; border-radius:2px; }
 
 .tf-fields { display:grid; gap:8px; }
-.tf-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.tf-grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+/* minmax(0,1fr) et non 1fr : sinon la largeur minimale d'une colonne suit son
+   contenu, et taper un nombre long élargit sa colonne en comprimant les
+   autres — toute la grille se réorganise sous le doigt à chaque chiffre. */
+.tf-grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+/* Trois colonnes sur un téléphone étroit, quatre dès qu'il y a la place. À
+   quatre colonnes sur 375 px il reste 46 px de texte, soit moins de quatre
+   caractères : « 1 234 » passait à la ligne et faisait grandir le champ. Les
+   neuf calibres, cassés compris, tiennent en trois rangées pleines. */
+.tf-grid4 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+@media (min-width:420px) {
+  .tf-grid4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+.tf-grid4 .tf-value { font-size:18px; }
 
 .tf-field { border:1px solid var(--line); border-radius:2px; background:var(--field);
             padding:9px 11px; text-align:left; width:100%; cursor:pointer;
-            font-family:'IBM Plex Sans',sans-serif; display:block; }
+            font-family:'IBM Plex Sans',sans-serif; display:block; overflow:hidden; }
 .tf-field:focus-visible { outline:2px solid var(--yolk); outline-offset:1px; }
 .tf-field[data-filled="1"] { background:var(--card); border-color:var(--ink); }
 .tf-label { display:block; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
             color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-bottom:3px; }
 .tf-value { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:21px;
-            line-height:1.15; font-variant-numeric:tabular-nums; }
+            line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; }
 /* Le "0" reste dans la couleur normale du texte (var(--ink)) — un gris clair
    ici serait illisible en plein soleil. Le remplissage se voit déjà à travers
    le fond/bord du champ (voir .tf-field[data-filled]). */
 .tf-unit { font-size:11px; font-weight:500; color:var(--muted); margin-left:3px; }
-.tf-field-tag { display:inline-block; margin-top:5px; font-variant-numeric:tabular-nums; }
+.tf-field-tag { display:block; margin-top:5px; font-variant-numeric:tabular-nums;
+                white-space:nowrap; }
 .tf-field[data-tone="brick"][data-filled="1"] .tf-value { color:var(--brick); }
 
 /* Champ en lecture seule (prix des œufs hors compte Direction) : on retire
@@ -115,7 +127,7 @@
 .tf-toggle .tf-chip { flex:1; text-align:center; padding:11px; font-weight:600; }
 .tf-chip[data-warn="1"][data-on="1"] { background:var(--brick); border-color:var(--brick); color:#fff; }
 
-.tf-cats { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.tf-cats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
 .tf-cats .tf-field { padding:7px 9px; }
 .tf-cats .tf-label { font-size:9px; letter-spacing:0.05em; white-space:nowrap;
                      overflow:hidden; text-overflow:ellipsis; }

@@ -11,7 +11,12 @@ export default function NumField({ label, unit, value, tone, detail, onOpen }) {
       <span className="tf-value" data-zero={value ? 0 : 1}>
         {fmt(value)}<span className="tf-unit">{unit}</span>
       </span>
-      {detail && <span className="tf-tag tf-field-tag">{detail}</span>}
+      {/* Dès qu'un écran passe `detail`, la ligne est réservée en permanence —
+          une espace insécable quand il n'y a rien à montrer. Sinon elle
+          apparaît au premier chiffre tapé et fait sauter tout l'écran. */}
+      {detail !== undefined && (
+        <span className="tf-tag tf-field-tag">{detail ?? " "}</span>
+      )}
     </button>
   );
 }
