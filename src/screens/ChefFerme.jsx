@@ -5,8 +5,12 @@ import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import { fmt, today, dLabel } from "../components/format";
 import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
+
+// Un sac de provende fait 50 kg — vérifié sur la feuille d'août 2026,
+// 167 kg distribués pour 3,34 sacs.
+const SAC_KG = 50;
 import { supabase } from "../lib/supabaseClient";
-import { enqueue, idStable, uuid } from "../lib/offlineQueue";
+import { enqueue, idStable, onQueueChange, uuid } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 // Reference port of the prototype's Chef de ferme screen (docs/tama-app.jsx)
@@ -36,6 +40,24 @@ export default function ChefFerme() {
       });
   }, []);
 
+  // Stock de provende : les livraisons reçues moins ce qui a été distribué.
+  // Se recharge quand la file bouge, pour qu'une réception saisie hors ligne
+  // se voie tout de suite.
+  const [stock, setStock] = useState({});
+  const chargerStock = () => {
+    supabase
+      .from("v_stock_provende")
+      .select("lot_id, stock_kg, conso_jour_kg, derniere_livraison")
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        setStock(Object.fromEntries(data.map((s) => [s.lot_id, s])));
+      });
+  };
+  useEffect(() => {
+    chargerStock();
+    return onQueueChange(chargerStock);
+  }, []);
+
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const setPadVal = (v) => {
@@ -50,6 +72,15 @@ export default function ChefFerme() {
     [draft]
   );
   const grammesParPoule = val("kg") && lot?.vivant ? (val("kg") * 1000) / lot.vivant : 0;
+
+  // Le stock tel qu'il sera une fois la saisie du soir enregistrée : les sacs
+  // reçus entrent, les kilos distribués sortent. Le chef voit l'effet de sa
+  // saisie avant de la valider.
+  const stockLot = stock[lotId];
+  const stockAffiche = (stockLot?.stock_kg ?? 0) + val("sacs") * SAC_KG - val("kg");
+  const conso = Number(stockLot?.conso_jour_kg ?? 0);
+  const autonomie = conso > 0 ? stockAffiche / conso : null;
+  const derniereLivraison = stockLot?.derniere_livraison;
 
   const peutEnregistrer = Object.values(draft).some(Boolean);
 
@@ -87,6 +118,18 @@ export default function ChefFerme() {
             provende_kg: val("kg"), mortalite: val("mort"),
             prix_provende_kg: lot?.prixProvende ?? null,
             auteur,
+          },
+        })
+      );
+    }
+    if (val("sacs")) {
+      jobs.push(
+        enqueue({
+          table: "livraisons_provende",
+          conflict: "id",
+          payload: {
+            id: uuid(), lot_id: lotId, date,
+            sacs: val("sacs"), poids_sac: SAC_KG, auteur,
           },
         })
       );
@@ -145,6 +188,32 @@ export default function ChefFerme() {
             <span className="tf-live-n">{grammesParPoule ? fmt(grammesParPoule) : "—"}</span>
             <span className="tf-live-l">grammes par poule · norme 110–125 g</span>
           </div>
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Provende en stock</span>
+            <span className="tf-tag">1 SAC = {SAC_KG} KG</span>
+          </div>
+          <div className="tf-grid2">
+            <NumField label="Sacs reçus" unit="sacs" value={val("sacs")}
+              detail={val("sacs") ? `${fmt(val("sacs") * SAC_KG)} kg` : null}
+              onOpen={() => open("sacs", "Sacs de provende reçus", "sacs")} />
+            <NumField label="Reste en magasin" unit="kg" value={Math.max(0, stockAffiche)}
+              detail={stockAffiche > 0 ? `${(stockAffiche / SAC_KG).toFixed(1)} sacs` : null} />
+          </div>
+          <div className="tf-live" data-alerte={autonomie !== null && autonomie < 7 ? 1 : 0}>
+            <span className="tf-live-n">{autonomie === null ? "—" : autonomie.toFixed(0)}</span>
+            <span className="tf-live-l">
+              jours d'autonomie
+              {conso ? ` · ${fmt(conso)} kg par jour en moyenne` : " · consommation pas encore connue"}
+            </span>
+          </div>
+          <p className="tf-note">
+            Note les sacs le jour où ils arrivent. Le reste se calcule tout seul : ce qui est entré
+            moins ce qui a été distribué.
+            {derniereLivraison && ` Dernière livraison le ${dLabel(derniereLivraison)}.`}
+          </p>
         </div>
 
         <div className="tf-card">

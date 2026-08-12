@@ -161,6 +161,8 @@
 .tf-live-n { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:26px;
              font-variant-numeric:tabular-nums; }
 .tf-live-l { font-size:12px; color:var(--muted); }
+/* Stock qui descend sous une semaine d'autonomie : à commander. */
+.tf-live[data-alerte="1"] .tf-live-n { color:var(--brick); }
 
 .tf-dateselect { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
 .tf-dateselect-nav { flex:0 0 auto; width:44px; height:44px; border:1px solid var(--line);
