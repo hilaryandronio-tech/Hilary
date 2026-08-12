@@ -9,7 +9,10 @@ import { useAuth } from "../context/AuthContext";
 // onglets ne servent qu'à naviguer entre les écrans déjà autorisés par les
 // policies RLS, ils ne changent pas les droits.
 const ECRANS = {
-  chef_ferme: [{ to: "/ferme", l: "Ferme" }],
+  chef_ferme: [
+    { to: "/ferme", l: "Ferme" },
+    { to: "/suivi", l: "Suivi" },
+  ],
   magasiniere: [{ to: "/magasin", l: "Ponte" }],
   point_vente: [
     { to: "/vente", l: "Caisse" },
@@ -20,6 +23,7 @@ const ECRANS = {
   direction: [
     { to: "/direction", l: "Tableau de bord" },
     { to: "/ferme", l: "Ferme" },
+    { to: "/suivi", l: "Suivi" },
     { to: "/magasin", l: "Ponte" },
     { to: "/vente", l: "Caisse" },
     { to: "/creances", l: "Créances" },
