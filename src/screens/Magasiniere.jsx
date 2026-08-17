@@ -69,10 +69,15 @@ export default function Magasiniere() {
     // sinon deux en-têtes le même jour pour le même bâtiment violeraient la
     // contrainte d'unicité de la table.
     //
-    // L'identifiant se déduit de (date, bâtiment) : ré-enregistrer une fiche
-    // corrige celle du jour au lieu d'être rejetée par cette contrainte. Les
-    // lignes partent toutes, y compris à zéro, sans quoi un calibre saisi par
-    // erreur puis retiré resterait dans la fiche corrigée.
+    // On vise (date, bâtiment) et non l'identifiant : une fiche créée hors de
+    // l'application — import des feuilles, correction en SQL — porte un
+    // identifiant tiré au sort, et viser le nôtre butait sur la contrainte
+    // d'unicité. En cas de conflit, la fiche existante est adoptée : son
+    // identifiant devient le nôtre et ses lignes suivent par cascade
+    // (docs/13-migration-identifiants-fiches.sql).
+    //
+    // Les lignes partent toutes, y compris à zéro, sans quoi un calibre saisi
+    // par erreur puis retiré resterait dans la fiche corrigée.
     const ponteId = idStable("ponte", date, lotId);
     // Les cassés se vendent (500 Ar), donc comptent aussi comme production —
     // pas seulement comme dégât — en plus de rester dans oeufs_casses ci-dessous.
@@ -85,7 +90,7 @@ export default function Magasiniere() {
     // étrangère vers l'en-tête, elles doivent partir après lui.
     await enqueue({
       table: "pontes",
-      conflict: "id",
+      conflict: "date,lot_id",
       groupe: ponteId,
       payload: {
         id: ponteId, date, lot_id: lotId,

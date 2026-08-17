@@ -10,7 +10,7 @@ import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 // 167 kg distribués pour 3,34 sacs.
 const SAC_KG = 50;
 import { supabase } from "../lib/supabaseClient";
-import { enqueue, idStable, onQueueChange, uuid } from "../lib/offlineQueue";
+import { enqueue, onQueueChange, uuid } from "../lib/offlineQueue";
 import { useAuth } from "../context/AuthContext";
 
 // Reference port of the prototype's Chef de ferme screen (docs/tama-app.jsx)
@@ -33,10 +33,14 @@ export default function ChefFerme() {
       .select("lot_id, nom, en_ponte, vivant, prix_provende_kg")
       .then(({ data, error }) => {
         if (error || !data) return; // hors ligne : on garde le seed local
-        setLots(data.map((l) => ({
-          id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
-          prixProvende: l.prix_provende_kg,
-        })));
+        // Trié : PostgREST ne garantit aucun ordre, et des bâtiments qui
+        // changent de place d'un chargement à l'autre font choisir le mauvais.
+        setLots([...data]
+          .sort((a, b) => a.lot_id.localeCompare(b.lot_id))
+          .map((l) => ({
+            id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
+            prixProvende: l.prix_provende_kg,
+          })));
       });
   }, []);
 
@@ -107,19 +111,21 @@ export default function ChefFerme() {
     const jobs = [];
 
     if (val("kg") || val("mort")) {
-      // La table n'accepte qu'une saisie par (date, bâtiment). En dérivant
-      // l'identifiant de ce couple, ressaisir le même soir corrige la ligne
-      // au lieu de buter sur la contrainte d'unicité.
-      const saisieId = idStable("saisie_ferme", date, lotId);
+      // La table n'accepte qu'une saisie par (date, bâtiment), et c'est ce
+      // couple qu'on vise : la ligne existante est corrigée quelle que soit
+      // son origine. Viser un identifiant fabriqué ici butait sur la
+      // contrainte dès que la ligne venait d'ailleurs — l'import des feuilles
+      // en particulier, dont les identifiants sont tirés au sort. Rien ne
+      // référence `saisies_ferme.id`, il n'y a donc pas à l'imposer.
       jobs.push(
         enqueue({
           table: "saisies_ferme",
-          conflict: "id",
+          conflict: "date,lot_id",
           // Le prix est figé ici, comme `vente_lignes.prix_unit` l'est à la
           // vente : une hausse du fournisseur ne doit pas réécrire le coût
           // des mois déjà clos.
           payload: {
-            id: saisieId, date, lot_id: lotId,
+            date, lot_id: lotId,
             provende_kg: val("kg"), mortalite: val("mort"),
             prix_provende_kg: lot?.prixProvende ?? null,
             auteur,

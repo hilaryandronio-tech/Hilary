@@ -20,9 +20,12 @@ export function useLotsEnPonte() {
       .select("lot_id, nom, en_ponte, vivant")
       .then(({ data, error }) => {
         if (error || !data) return; // hors ligne : on garde le seed local
+        // Trié : PostgREST ne garantit aucun ordre, et des bâtiments qui
+        // changent de place d'un chargement à l'autre font choisir le mauvais.
         setLots(
           data
             .filter((l) => l.en_ponte)
+            .sort((a, b) => a.lot_id.localeCompare(b.lot_id))
             .map((l) => ({ id: l.lot_id, nom: l.nom, vivant: l.vivant }))
         );
       });
