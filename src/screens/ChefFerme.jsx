@@ -79,7 +79,12 @@ export default function ChefFerme() {
   const stockLot = stock[lotId];
   const stockAffiche = (stockLot?.stock_kg ?? 0) + val("sacs") * SAC_KG - val("kg");
   const conso = Number(stockLot?.conso_jour_kg ?? 0);
-  const autonomie = conso > 0 ? stockAffiche / conso : null;
+  // Un stock négatif n'existe pas dans un magasin : il signale qu'il manque
+  // des livraisons face à ce qui a déjà été distribué. Afficher « 0 kg » et
+  // « −1 jour » dans la même carte revenait à se contredire — mieux vaut
+  // nommer le trou que d'en déduire une autonomie qui n'a aucun sens.
+  const stockIncoherent = stockAffiche < 0;
+  const autonomie = !stockIncoherent && conso > 0 ? stockAffiche / conso : null;
   const derniereLivraison = stockLot?.derniere_livraison;
 
   const peutEnregistrer = Object.values(draft).some(Boolean);
@@ -202,16 +207,26 @@ export default function ChefFerme() {
             <NumField label="Reste en magasin" unit="kg" value={Math.max(0, stockAffiche)}
               detail={stockAffiche > 0 ? `${(stockAffiche / SAC_KG).toFixed(1)} sacs` : null} />
           </div>
-          <div className="tf-live" data-alerte={autonomie !== null && autonomie < 7 ? 1 : 0}>
-            <span className="tf-live-n">{autonomie === null ? "—" : autonomie.toFixed(0)}</span>
-            <span className="tf-live-l">
-              jours d'autonomie
-              {conso ? ` · ${fmt(conso)} kg par jour en moyenne` : " · consommation pas encore connue"}
-            </span>
-          </div>
+          {stockIncoherent ? (
+            <div className="tf-live" data-alerte="1">
+              <span className="tf-live-n">{fmt(-stockAffiche)}</span>
+              <span className="tf-live-l">
+                kg distribués de plus que ce qui a été reçu — il manque des livraisons
+              </span>
+            </div>
+          ) : (
+            <div className="tf-live" data-alerte={autonomie !== null && autonomie < 7 ? 1 : 0}>
+              <span className="tf-live-n">{autonomie === null ? "—" : autonomie.toFixed(0)}</span>
+              <span className="tf-live-l">
+                jours d'autonomie
+                {conso ? ` · ${fmt(conso)} kg par jour en moyenne` : " · consommation pas encore connue"}
+              </span>
+            </div>
+          )}
           <p className="tf-note">
-            Note les sacs le jour où ils arrivent. Le reste se calcule tout seul : ce qui est entré
-            moins ce qui a été distribué.
+            {stockIncoherent
+              ? "Saisis ce qui restait réellement en magasin comme des sacs reçus, à la date où le comptage a été fait : le calcul repartira juste."
+              : "Note les sacs le jour où ils arrivent. Le reste se calcule tout seul : ce qui est entré moins ce qui a été distribué."}
             {derniereLivraison && ` Dernière livraison le ${dLabel(derniereLivraison)}.`}
           </p>
         </div>
