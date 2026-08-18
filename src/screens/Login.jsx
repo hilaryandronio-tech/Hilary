@@ -18,7 +18,17 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email: entree.email, password: pin });
     setEnvoi(false);
     if (error) {
-      setErreur("Code incorrect. Réessaie.");
+      // « Code incorrect » pour toute erreur, c'était mentir une fois sur
+      // deux : une coupure réseau ou une limite de tentatives donne le même
+      // refus, et on retape indéfiniment un code qui est pourtant le bon.
+      const sansReponse = !error.status || error.status >= 500;
+      setErreur(
+        sansReponse
+          ? "Le serveur ne répond pas. Vérifie la connexion, puis réessaie."
+          : error.status === 429
+            ? "Trop de tentatives. Attends une minute avant de réessayer."
+            : "Code incorrect. Réessaie."
+      );
       setPin("");
     }
   };
