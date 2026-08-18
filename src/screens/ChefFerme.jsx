@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
+import HistoriqueFerme from "../components/HistoriqueFerme";
 import { fmt, today, dLabel } from "../components/format";
 import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 
@@ -236,6 +237,8 @@ export default function ChefFerme() {
             {derniereLivraison && ` Dernière livraison le ${dLabel(derniereLivraison)}.`}
           </p>
         </div>
+
+        <HistoriqueFerme lotId={lotId} vivant={lot?.vivant} />
 
         <div className="tf-card">
           <div className="tf-cardhead">

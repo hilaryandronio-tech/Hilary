@@ -241,6 +241,9 @@
 .tf-releve tbody td:last-child { font-weight:600; }
 .tf-releve tfoot th, .tf-releve tfoot td { border-top:1px solid var(--ink); font-weight:600;
                                            padding-top:8px; }
+/* Valeur qui mérite un coup d'œil : une mortalité non nulle, une ration hors
+   de la norme. En brique, jamais en gris — ça se lit dehors. */
+.tf-releve td[data-alerte="1"] { color:var(--brick); font-weight:600; }
 
 /* Avertissement sur un cumul incomplet : à lire, donc en brique et non en gris. */
 .tf-note[data-alerte="1"] { color:var(--brick); font-weight:600; }
