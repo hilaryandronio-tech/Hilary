@@ -210,7 +210,7 @@ export default function ChefFerme() {
             <NumField label="Sacs reçus" unit="sacs" value={val("sacs")}
               detail={val("sacs") ? `${fmt(val("sacs") * SAC_KG)} kg` : null}
               onOpen={() => open("sacs", "Sacs de provende reçus", "sacs")} />
-            <NumField label="Reste en magasin" unit="kg" value={Math.max(0, stockAffiche)}
+            <NumField label="Reste aujourd'hui" unit="kg" value={Math.max(0, stockAffiche)}
               detail={stockAffiche > 0 ? `${(stockAffiche / SAC_KG).toFixed(1)} sacs` : null} />
           </div>
           {stockIncoherent ? (
@@ -232,7 +232,7 @@ export default function ChefFerme() {
           <p className="tf-note">
             {stockIncoherent
               ? "Saisis ce qui restait réellement en magasin comme des sacs reçus, à la date où le comptage a été fait : le calcul repartira juste."
-              : "Note les sacs le jour où ils arrivent. Le reste se calcule tout seul : ce qui est entré moins ce qui a été distribué."}
+              : "Note les sacs le jour où ils arrivent. Le reste est l'état du magasin à ce jour, toutes dates confondues — il ne suit pas la date affichée en haut : tout ce qui est entré, moins tout ce qui a été distribué."}
             {derniereLivraison && ` Dernière livraison le ${dLabel(derniereLivraison)}.`}
           </p>
         </div>
