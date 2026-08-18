@@ -7,7 +7,7 @@ import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 // en cours : impossible de vérifier qu'on n'avait pas oublié la veille, ni de
 // voir une provende aberrante au milieu d'une série.
 
-const JOURS = 14;
+const JOURS = 31;
 
 export default function HistoriqueFerme({ lotId, vivant }) {
   const [serveur, setServeur] = useState([]);
@@ -70,7 +70,9 @@ export default function HistoriqueFerme({ lotId, vivant }) {
         <p className="tf-empty">Aucune saisie enregistrée pour ce bâtiment.</p>
       ) : (
         <>
-          <div className="tf-releve-cadre">
+          {/* Un mois de lignes repousserait le reste de l'écran hors de vue :
+              la zone défile, en-tête et total restant collés aux bords. */}
+          <div className="tf-releve-cadre" data-long="1">
             <table className="tf-releve">
               <thead>
                 <tr>
@@ -112,8 +114,8 @@ export default function HistoriqueFerme({ lotId, vivant }) {
             </table>
           </div>
           <p className="tf-note">
-            Les quatorze derniers jours saisis. La colonne g/poule compare la provende à la norme
-            110–125 g ; hors de cette fourchette, elle passe en brique.
+            Les trente et un derniers jours saisis — fais défiler la liste. La colonne g/poule
+            compare la provende à la norme 110–125 g ; hors de cette fourchette, elle passe en brique.
             {enAttente && " Les saisies pas encore synchronisées y figurent."}
           </p>
         </>

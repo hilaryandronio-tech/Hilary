@@ -245,6 +245,16 @@
    de la norme. En brique, jamais en gris — ça se lit dehors. */
 .tf-releve td[data-alerte="1"] { color:var(--brick); font-weight:600; }
 
+/* Relevé long — un mois de saisies. La zone défile, mais l'en-tête et la ligne
+   de total restent visibles : sans ça le total sort de l'écran et on ne sait
+   plus de quelle colonne on lit les chiffres. */
+.tf-releve-cadre[data-long="1"] { max-height:340px; overflow-y:auto; }
+.tf-releve-cadre[data-long="1"] thead th { position:sticky; top:0; z-index:2;
+                                           background:var(--card); }
+.tf-releve-cadre[data-long="1"] tfoot th,
+.tf-releve-cadre[data-long="1"] tfoot td { position:sticky; bottom:0; z-index:2;
+                                           background:var(--card); }
+
 /* Avertissement sur un cumul incomplet : à lire, donc en brique et non en gris. */
 .tf-note[data-alerte="1"] { color:var(--brick); font-weight:600; }
 
