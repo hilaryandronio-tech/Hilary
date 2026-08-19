@@ -241,6 +241,11 @@
 .tf-releve tbody td:last-child { font-weight:600; }
 .tf-releve tfoot th, .tf-releve tfoot td { border-top:1px solid var(--ink); font-weight:600;
                                            padding-top:8px; }
+/* Lignes sous le total qui n'en font pas partie : trait léger et chiffre non
+   gras, pour qu'on ne les additionne pas de l'œil au total juste au-dessus. */
+.tf-releve tfoot tr[data-hors-total="1"] th,
+.tf-releve tfoot tr[data-hors-total="1"] td { border-top:1px dashed var(--line);
+                                              font-weight:500; padding-top:6px; }
 /* Valeur qui mérite un coup d'œil : une mortalité non nulle, une ration hors
    de la norme. En brique, jamais en gris — ça se lit dehors. */
 .tf-releve td[data-alerte="1"] { color:var(--brick); font-weight:600; }
