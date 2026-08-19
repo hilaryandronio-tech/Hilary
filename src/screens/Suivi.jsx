@@ -77,7 +77,12 @@ export default function Suivi() {
     const ops = await operationsEnAttente("interventions");
     const parId = {};
     ops.forEach((op) => {
-      if (op.match?.id && op.payload?.date_realisee) parId[op.match.id] = op.payload.date_realisee;
+      // La valeur peut être `null` — c'est une annulation. On enregistre donc
+      // la présence de l'opération, pas seulement une date non vide, sinon un
+      // décochage fait hors ligne resterait invisible jusqu'à la synchro.
+      if (op.match?.id && "date_realisee" in (op.payload ?? {})) {
+        parId[op.match.id] = op.payload.date_realisee;
+      }
     });
     setFaitesEnFile(parId);
   };
@@ -92,7 +97,10 @@ export default function Suivi() {
   const lignes = useMemo(
     () =>
       interventions.map((i) => {
-        const enrichie = { ...i, date_realisee: i.date_realisee ?? faitesEnFile[i.id] ?? null };
+        const enrichie = {
+          ...i,
+          date_realisee: i.id in faitesEnFile ? faitesEnFile[i.id] : i.date_realisee,
+        };
         return { ...enrichie, etat: etat(enrichie, jour) };
       }),
     [interventions, faitesEnFile, jour]
@@ -104,6 +112,9 @@ export default function Suivi() {
   const aVenir = par("avenir");
   const faites = par("fait");
 
+  // `date` à null décoche : cocher est un geste rapide, donc facile à faire
+  // sur la mauvaise ligne, et il n'y avait aucun moyen de revenir en arrière
+  // sans passer par le SQL.
   const marquer = async (i, date) => {
     await enqueue({
       table: "interventions",
@@ -111,7 +122,7 @@ export default function Suivi() {
       payload: { date_realisee: date, auteur: profil?.id },
       match: { id: i.id },
     });
-    setFlash(`${i.libelle} — noté au ${dLabel(date)}.`);
+    setFlash(date ? `${i.libelle} — noté au ${dLabel(date)}.` : `${i.libelle} — remis à faire.`);
     setTimeout(() => setFlash(""), 3000);
   };
 
@@ -136,7 +147,13 @@ export default function Suivi() {
                 {i.date_realisee ? `fait le ${dLabel(i.date_realisee)}` : fenetre(i)}
               </div>
             </div>
-            {!i.date_realisee && (
+            {i.date_realisee ? (
+              <div className="tf-due-r">
+                <div className="tf-due-actions">
+                  <button className="tf-due-btn" onClick={() => marquer(i, null)}>Annuler</button>
+                </div>
+              </div>
+            ) : (
               <div className="tf-due-r">
                 <div className="tf-due-actions">
                   <button className="tf-due-btn" onClick={() => marquer(i, jour)}>Fait</button>
