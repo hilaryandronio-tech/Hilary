@@ -1,6 +1,6 @@
-import { openDB } from "idb";
 import { supabase } from "./supabaseClient";
 import { sha256 } from "./sha256";
+import { dbPromise, FILE as STORE, ECHECS } from "./baseLocale";
 
 // Every write in the app goes through here instead of calling supabase
 // directly — see docs/03-brief-technique.md section 2, "le point de
@@ -18,17 +18,6 @@ import { sha256 } from "./sha256";
 //     froze every later write in IndexedDB, forever, with nothing on screen.
 //  3. Whatever ends up in `echecs` is shown to the user (see EtatSync).
 //     A failure nobody can see is a failure nobody will fix.
-
-const DB_NAME = "tama-ferme";
-const STORE = "queue";
-const ECHECS = "echecs";
-
-const dbPromise = openDB(DB_NAME, 2, {
-  upgrade(db, ancienneVersion) {
-    if (ancienneVersion < 1) db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-    if (ancienneVersion < 2) db.createObjectStore(ECHECS, { keyPath: "id", autoIncrement: true });
-  },
-});
 
 let flushing = false;
 let reprise = null;

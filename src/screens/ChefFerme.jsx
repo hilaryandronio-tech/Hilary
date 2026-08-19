@@ -12,6 +12,8 @@ import { SEED_LOTS, CATEGORIES_CHARGES } from "../data/constants";
 const SAC_KG = 50;
 import { supabase } from "../lib/supabaseClient";
 import { enqueue, onQueueChange, uuid } from "../lib/offlineQueue";
+import { lectureCachee } from "../lib/cacheLecture";
+import { lireEffectifs } from "../lib/effectifs";
 import { useAuth } from "../context/AuthContext";
 
 // Reference port of the prototype's Chef de ferme screen (docs/tama-app.jsx)
@@ -29,20 +31,13 @@ export default function ChefFerme() {
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
-    supabase
-      .from("v_effectif")
-      .select("lot_id, nom, en_ponte, vivant, prix_provende_kg")
-      .then(({ data, error }) => {
-        if (error || !data) return; // hors ligne : on garde le seed local
-        // Trié : PostgREST ne garantit aucun ordre, et des bâtiments qui
-        // changent de place d'un chargement à l'autre font choisir le mauvais.
-        setLots([...data]
-          .sort((a, b) => a.lot_id.localeCompare(b.lot_id))
-          .map((l) => ({
-            id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
-            prixProvende: l.prix_provende_kg,
-          })));
-      });
+    lireEffectifs().then(({ lots: data }) => {
+      if (!data) return; // jamais chargé et hors ligne : on garde le seed
+      setLots(data.map((l) => ({
+        id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
+        prixProvende: l.prix_provende_kg,
+      })));
+    });
   }, []);
 
   // Stock de provende : les livraisons reçues moins ce qui a été distribué.
@@ -50,13 +45,12 @@ export default function ChefFerme() {
   // se voie tout de suite.
   const [stock, setStock] = useState({});
   const chargerStock = () => {
-    supabase
-      .from("v_stock_provende")
-      .select("lot_id, stock_kg, conso_jour_kg, derniere_livraison")
-      .then(({ data, error }) => {
-        if (error || !data) return;
-        setStock(Object.fromEntries(data.map((s) => [s.lot_id, s])));
-      });
+    lectureCachee("v_stock_provende", () =>
+      supabase.from("v_stock_provende").select("lot_id, stock_kg, conso_jour_kg, derniere_livraison")
+    ).then(({ data }) => {
+      if (!data) return;
+      setStock(Object.fromEntries(data.map((s) => [s.lot_id, s])));
+    });
   };
   useEffect(() => {
     chargerStock();

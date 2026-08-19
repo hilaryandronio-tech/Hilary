@@ -9,6 +9,7 @@ import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, POIDS, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue, uuid } from "../lib/offlineQueue";
+import { lectureCachee } from "../lib/cacheLecture";
 import { useClients } from "../lib/useClients";
 import { useAuth } from "../context/AuthContext";
 
@@ -35,11 +36,9 @@ export default function PointVente() {
   }, [clients]);
 
   useEffect(() => {
-    supabase
-      .from("calibres")
-      .select("code, prix_base")
-      .then(({ data, error }) => {
-        if (error || !data?.length) return; // hors ligne : on garde le repli local
+    lectureCachee("calibres", () => supabase.from("calibres").select("code, prix_base"))
+      .then(({ data }) => {
+        if (!data?.length) return; // jamais chargé et hors ligne : repli local
         // Fusion sur le repli, jamais remplacement : un calibre absent de la
         // table `calibres` laisserait sinon son prix indéfini, la ligne de
         // vente partirait sans prix_unit et Supabase la refuserait — la vente

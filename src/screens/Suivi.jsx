@@ -4,6 +4,8 @@ import AlerteEchecs from "../components/AlerteEchecs";
 import { dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue, onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { lectureCachee } from "../lib/cacheLecture";
+import { lireEffectifs } from "../lib/effectifs";
 import { useAuth } from "../context/AuthContext";
 
 // Le calendrier d'élevage du fournisseur : vaccins et traitements, chacun avec
@@ -47,25 +49,25 @@ export default function Suivi() {
   const jour = today();
 
   useEffect(() => {
-    supabase
-      .from("v_effectif")
-      .select("lot_id, nom, en_ponte, age_semaines")
-      .then(({ data, error }) => {
-        if (error || !data) return;
-        const tries = [...data].sort((a, b) => a.lot_id.localeCompare(b.lot_id));
-        setLots(tries);
-        setLotId((id) => id ?? tries.find((l) => !l.en_ponte)?.lot_id ?? tries[0]?.lot_id ?? null);
-      });
+    lireEffectifs().then(({ lots: data }) => {
+      if (!data) return;
+      setLots(data);
+      setLotId((id) => id ?? data.find((l) => !l.en_ponte)?.lot_id ?? data[0]?.lot_id ?? null);
+    });
   }, []);
 
   const charger = async () => {
     if (!lotId) return;
-    const { data, error } = await supabase
-      .from("interventions")
-      .select("id, lot_id, type, libelle, age, date_prevue, date_fin_prevue, date_realisee, produit, technicien")
-      .eq("lot_id", lotId)
-      .order("date_prevue");
-    if (!error && data) setInterventions(data);
+    // Le calendrier doit rester consultable au poulailler, sans réseau : c'est
+    // là qu'on a besoin de savoir ce qui est dû aujourd'hui.
+    const { data } = await lectureCachee(`interventions:${lotId}`, () =>
+      supabase
+        .from("interventions")
+        .select("id, lot_id, type, libelle, age, date_prevue, date_fin_prevue, date_realisee, produit, technicien")
+        .eq("lot_id", lotId)
+        .order("date_prevue")
+    );
+    if (data) setInterventions(data);
   };
 
   // Une intervention cochée hors ligne doit apparaître faite tout de suite :

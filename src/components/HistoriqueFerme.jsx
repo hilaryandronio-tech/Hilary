@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, dLabel, today } from "./format";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { lectureCachee } from "../lib/cacheLecture";
 
 // Les derniers jours saisis pour un bâtiment. L'écran ne montrait que le jour
 // en cours : impossible de vérifier qu'on n'avait pas oublié la veille, ni de
@@ -15,15 +16,16 @@ export default function HistoriqueFerme({ lotId, vivant }) {
   const requete = useRef(0);
 
   const chargerServeur = async (jeton) => {
-    const { data, error } = await supabase
-      .from("saisies_ferme")
-      .select("date, provende_kg, mortalite")
-      .eq("lot_id", lotId)
-      .order("date", { ascending: false })
-      .limit(JOURS);
+    const { data } = await lectureCachee(`saisies:${lotId}`, () =>
+      supabase
+        .from("saisies_ferme")
+        .select("date, provende_kg, mortalite")
+        .eq("lot_id", lotId)
+        .order("date", { ascending: false })
+        .limit(JOURS)
+    );
     if (jeton !== requete.current) return; // une réponse en retard n'écrase pas
-    if (error || !data) return;
-    setServeur(data);
+    if (data) setServeur(data);
   };
 
   // Une saisie encore en file doit apparaître : le chef vient de l'enregistrer,

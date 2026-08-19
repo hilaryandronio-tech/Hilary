@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { supabase } from "./supabaseClient";
+import { lireEffectifs } from "./effectifs";
 import { SEED_LOTS } from "../data/constants";
 
 // Les bâtiments actuellement en ponte, partagés par l'écran de saisie de la
 // magasinière et le relevé consulté au point de vente — les deux doivent
 // montrer les mêmes colonnes.
+//
+// Le repli de constants.js n'est plus qu'un dernier recours, pour un téléphone
+// qui n'aurait jamais réussi à charger la liste. Dès qu'elle l'a été une fois,
+// c'est la vraie liste qui ressert hors ligne — sans quoi l'écran affichait
+// 3 000 poules par bâtiment et un taux de ponte faux.
 const seed = SEED_LOTS.filter((l) => l.en_ponte).map((l) => ({
   id: l.id,
   nom: l.nom,
@@ -15,20 +20,14 @@ export function useLotsEnPonte() {
   const [lots, setLots] = useState(seed);
 
   useEffect(() => {
-    supabase
-      .from("v_effectif")
-      .select("lot_id, nom, en_ponte, vivant")
-      .then(({ data, error }) => {
-        if (error || !data) return; // hors ligne : on garde le seed local
-        // Trié : PostgREST ne garantit aucun ordre, et des bâtiments qui
-        // changent de place d'un chargement à l'autre font choisir le mauvais.
-        setLots(
-          data
-            .filter((l) => l.en_ponte)
-            .sort((a, b) => a.lot_id.localeCompare(b.lot_id))
-            .map((l) => ({ id: l.lot_id, nom: l.nom, vivant: l.vivant }))
-        );
-      });
+    lireEffectifs().then(({ lots: data }) => {
+      if (!data) return; // jamais chargé et hors ligne : on garde le repli
+      setLots(
+        data
+          .filter((l) => l.en_ponte)
+          .map((l) => ({ id: l.lot_id, nom: l.nom, vivant: l.vivant }))
+      );
+    });
   }, []);
 
   return lots;

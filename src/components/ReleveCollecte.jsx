@@ -3,6 +3,7 @@ import { fmt, today, dLabel } from "./format";
 import { CALIBRES, POIDS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { lectureCachee } from "../lib/cacheLecture";
 import AlerteEchecs from "./AlerteEchecs";
 
 const TABLES = ["pontes", "ponte_lignes"];
@@ -28,15 +29,19 @@ export default function ReleveCollecte({ date, lots }) {
   const requete = useRef(0);
 
   const chargerServeur = async (jeton) => {
-    const { data, error } = await supabase
-      .from("pontes")
-      .select("lot_id, ponte_lignes(calibre, oeufs)")
-      .eq("date", date)
-      .not("lot_id", "is", null);
+    // Une clé par jour : le relevé de la veille reste lisible au poulailler
+    // même sans réseau.
+    const { data } = await lectureCachee(`pontes:${date}`, () =>
+      supabase
+        .from("pontes")
+        .select("lot_id, ponte_lignes(calibre, oeufs)")
+        .eq("date", date)
+        .not("lot_id", "is", null)
+    );
     // Deux requêtes lancées coup sur coup peuvent revenir dans le désordre :
     // seule la dernière demandée a le droit d'écrire dans l'état.
     if (jeton !== requete.current) return;
-    if (error || !data) return; // hors ligne : on garde ce qu'on savait déjà
+    if (!data) return; // jamais chargé et hors ligne
     const parLot = {};
     data.forEach((p) => {
       const lignes = (parLot[p.lot_id] ??= {});

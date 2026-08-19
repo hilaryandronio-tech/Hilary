@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import NumField from "./NumField";
 import Keypad from "./Keypad";
 import { fmt } from "./format";
-import { supabase } from "../lib/supabaseClient";
 import { enqueue, onQueueChange } from "../lib/offlineQueue";
+import { lireEffectifs } from "../lib/effectifs";
 
 // L'effectif vivant n'est pas stocké : la vue v_effectif le calcule comme
 // `effectif_initial - mortalité cumulée`. Pour que la direction saisisse
@@ -21,13 +21,9 @@ export default function Cheptel() {
   const [flash, setFlash] = useState("");
 
   const charger = () => {
-    supabase
-      .from("v_effectif")
-      .select("lot_id, nom, en_ponte, effectif_initial, vivant, prix_provende_kg")
-      .then(({ data, error }) => {
-        if (error || !data) return;
-        setLots([...data].sort((a, b) => a.lot_id.localeCompare(b.lot_id)));
-      });
+    lireEffectifs().then(({ lots: data }) => {
+      if (data) setLots(data);
+    });
   };
 
   useEffect(() => {
