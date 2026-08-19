@@ -34,6 +34,10 @@ function etat(i, aujourdhui) {
   return "avenir";
 }
 
+// « 13 juil. » porte déjà son point, « 19 juin » non : sans ça, une phrase sur
+// deux se termine par un double point.
+const finPhrase = (s) => (s.endsWith(".") ? s : `${s}.`);
+
 const fenetre = (i) =>
   i.date_fin_prevue && i.date_fin_prevue !== i.date_prevue
     ? `${dLabel(i.date_prevue)} → ${dLabel(i.date_fin_prevue)}`
@@ -46,6 +50,7 @@ export default function Suivi() {
   const [interventions, setInterventions] = useState([]);
   const [faitesEnFile, setFaitesEnFile] = useState({});
   const [flash, setFlash] = useState("");
+  const [padDate, setPadDate] = useState(null);
   const jour = today();
 
   useEffect(() => {
@@ -122,7 +127,7 @@ export default function Suivi() {
       payload: { date_realisee: date, auteur: profil?.id },
       match: { id: i.id },
     });
-    setFlash(date ? `${i.libelle} — noté au ${dLabel(date)}.` : `${i.libelle} — remis à faire.`);
+    setFlash(date ? finPhrase(`${i.libelle} — noté au ${dLabel(date)}`) : `${i.libelle} — remis à faire.`);
     setTimeout(() => setFlash(""), 3000);
   };
 
@@ -162,6 +167,12 @@ export default function Suivi() {
                       Fait le {dLabel(i.date_prevue).slice(5)}
                     </button>
                   )}
+                  {/* Le réalisé tombe rarement sur le prévu ni sur aujourd'hui :
+                      sur la fiche de la 1ère vague il traîne d'un à trois jours
+                      derrière, à chaque fois. Il faut pouvoir saisir la vraie
+                      date. */}
+                  <button className="tf-due-btn"
+                    onClick={() => setPadDate({ i, date: i.date_prevue })}>Autre date</button>
                 </div>
               </div>
             )}
@@ -225,6 +236,36 @@ export default function Suivi() {
           </div>
         </div>
       </main>
+
+      {/* Le calendrier du téléphone plutôt que le sélecteur à flèches de
+          l'application : une intervention de juin se note en août, et avancer
+          d'un jour à la fois demanderait soixante appuis. Le futur est fermé,
+          on ne note pas un geste qui n'a pas eu lieu. */}
+      {padDate && (
+        <div className="tf-pad" onClick={() => setPadDate(null)}>
+          <div className="tf-pad-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="tf-pad-head">
+              <span className="tf-pad-label">{padDate.i.libelle} — date réelle</span>
+              <button className="tf-role" data-on="1" onClick={() => setPadDate(null)}>Fermer</button>
+            </div>
+            <p className="tf-note">{finPhrase(`Prévu ${fenetre(padDate.i)}`)}</p>
+            <input
+              className="tf-recherche"
+              type="date"
+              value={padDate.date}
+              max={jour}
+              onChange={(e) => e.target.value && setPadDate({ ...padDate, date: e.target.value })}
+              aria-label="Date réelle de l'intervention"
+            />
+            <div className="tf-cta-in">
+              <button className="tf-btn"
+                onClick={() => { marquer(padDate.i, padDate.date); setPadDate(null); }}>
+                Noter au {dLabel(padDate.date)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {flash && <div className="tf-flash">{flash}</div>}
     </div>
