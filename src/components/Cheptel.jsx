@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import NumField from "./NumField";
 import Keypad from "./Keypad";
 import { fmt } from "./format";
-import { enqueue, onQueueChange } from "../lib/offlineQueue";
+import { enqueue, onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import { lireEffectifs } from "../lib/effectifs";
 
 // L'effectif vivant n'est pas stocké : la vue v_effectif le calcule comme
@@ -20,10 +20,34 @@ export default function Cheptel() {
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
 
-  const charger = () => {
-    lireEffectifs().then(({ lots: data }) => {
-      if (data) setLots(data);
+  // Le rechargement se déclenche à chaque mouvement de la file, y compris sur
+  // les écritures que cette carte vient d'émettre. Sans réappliquer ce qui est
+  // encore en attente, il ramènerait la valeur du serveur et effacerait la
+  // modification sous les yeux de la direction — visible seulement à la
+  // synchro, donc jamais hors ligne.
+  const charger = async () => {
+    const [{ lots: data }, enAttente] = await Promise.all([
+      lireEffectifs(),
+      operationsEnAttente("lots"),
+    ]);
+    if (!data) return;
+    const corrections = {};
+    enAttente.forEach((op) => {
+      if (op.kind === "update" && op.match?.id) {
+        corrections[op.match.id] = { ...corrections[op.match.id], ...op.payload };
+      }
     });
+    setLots(
+      data.map((l) => {
+        const c = corrections[l.lot_id];
+        if (!c) return l;
+        // `effectif_initial` corrigé : le vivant s'en déduit, mortalité
+        // cumulée déjà enregistrée comprise.
+        const initial = c.effectif_initial ?? l.effectif_initial;
+        const morts = l.effectif_initial - l.vivant;
+        return { ...l, ...c, effectif_initial: initial, vivant: initial - morts };
+      })
+    );
   };
 
   useEffect(() => {
@@ -72,6 +96,26 @@ export default function Cheptel() {
     setTimeout(() => setFlash(""), 2600);
   };
 
+  // L'entrée en ponte d'une vague, vers 18-20 semaines. C'est ce réglage qui
+  // fait apparaître le bâtiment chez la magasinière et qui le compte au
+  // dénominateur du taux de ponte.
+  const basculerPonte = async (lot, enPonte) => {
+    if (lot.en_ponte === enPonte) return;
+    setLots((ls) => ls.map((l) => (l.lot_id === lot.lot_id ? { ...l, en_ponte: enPonte } : l)));
+    await enqueue({
+      table: "lots",
+      kind: "update",
+      payload: { en_ponte: enPonte },
+      match: { id: lot.lot_id },
+    });
+    setFlash(
+      enPonte
+        ? `${lot.lot_id} passe en ponte — la magasinière peut saisir sa collecte.`
+        : `${lot.lot_id} repasse en poulettes — sa collecte n'est plus saisissable.`
+    );
+    setTimeout(() => setFlash(""), 4000);
+  };
+
   const ouvrir = (lot) =>
     setPad({
       champ: "vivant",
@@ -112,25 +156,37 @@ export default function Cheptel() {
       ) : (
         <div className="tf-fields">
           {lots.map((l) => (
-            <div className="tf-grid2" key={l.lot_id}>
-              <NumField
-                label={`${l.lot_id} · ${l.nom}${l.en_ponte ? "" : " (poulettes)"}`}
-                unit="poules"
-                value={l.vivant}
-                detail={
-                  l.effectif_initial - l.vivant > 0
-                    ? `${fmt(l.effectif_initial - l.vivant)} mortes`
-                    : null
-                }
-                onOpen={() => ouvrir(l)}
-              />
-              <NumField
-                label="Provende"
-                unit="Ar/kg"
-                value={l.prix_provende_kg ?? 0}
-                detail={null}
-                onOpen={() => ouvrirPrix(l)}
-              />
+            <div className="tf-batiment" key={l.lot_id}>
+              <div className="tf-grid2">
+                <NumField
+                  label={`${l.lot_id} · ${l.nom}`}
+                  unit="poules"
+                  value={l.vivant}
+                  detail={
+                    l.effectif_initial - l.vivant > 0
+                      ? `${fmt(l.effectif_initial - l.vivant)} mortes`
+                      : null
+                  }
+                  onOpen={() => ouvrir(l)}
+                />
+                <NumField
+                  label="Provende"
+                  unit="Ar/kg"
+                  value={l.prix_provende_kg ?? 0}
+                  detail={null}
+                  onOpen={() => ouvrirPrix(l)}
+                />
+              </div>
+              {/* Sans ce réglage, l'entrée en ponte d'une vague se ferait en
+                  SQL — et personne n'y penserait le jour venu. Un bâtiment
+                  qui n'est pas en ponte n'apparaît pas chez la magasinière :
+                  tant qu'il n'est pas basculé, sa collecte est insaisissable. */}
+              <div className="tf-toggle">
+                <button className="tf-chip" data-on={l.en_ponte ? 1 : 0}
+                  onClick={() => basculerPonte(l, true)}>En ponte</button>
+                <button className="tf-chip" data-on={!l.en_ponte ? 1 : 0}
+                  onClick={() => basculerPonte(l, false)}>Poulettes</button>
+              </div>
             </div>
           ))}
         </div>
@@ -143,6 +199,9 @@ export default function Cheptel() {
         Le <strong>prix de la provende</strong> vaut par bâtiment, les vagues n'ayant ni le même
         aliment ni le même tarif ; le changer n'affecte que les saisies à venir, les précédentes
         ont figé leur prix le soir même.
+        Bascule un bâtiment <strong>en ponte</strong> le jour où la vague commence à pondre, vers
+        18 à 20 semaines : tant qu'il reste en poulettes, il n'apparaît pas chez la magasinière et
+        sa collecte ne peut pas être saisie.
       </p>
 
       {flash && <div className="tf-flash">{flash}</div>}

@@ -148,6 +148,10 @@
 
 .tf-toggle { display:flex; gap:6px; margin-top:12px; }
 .tf-toggle .tf-chip { flex:1; text-align:center; padding:11px; font-weight:600; }
+/* Un bâtiment et ses réglages tiennent ensemble, séparés du suivant. */
+.tf-batiment { padding-bottom:12px; margin-bottom:12px; border-bottom:1px dashed var(--line); }
+.tf-batiment:last-child { padding-bottom:0; margin-bottom:0; border-bottom:none; }
+.tf-batiment .tf-toggle { margin-top:6px; }
 .tf-chip[data-warn="1"][data-on="1"] { background:var(--brick); border-color:var(--brick); color:#fff; }
 
 .tf-cats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
