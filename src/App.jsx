@@ -6,6 +6,7 @@ import Magasiniere from "./screens/Magasiniere";
 import Collecte from "./screens/Collecte";
 import Clients from "./screens/Clients";
 import Suivi from "./screens/Suivi";
+import Commandes from "./screens/Commandes";
 import PointVente from "./screens/PointVente";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
@@ -55,6 +56,8 @@ export default function App() {
       <Route path="/vente" element={<RoutePrivee roles={["point_vente"]}><PointVente /></RoutePrivee>} />
       {/* Le relevé de collecte en lecture, pour vendre en sachant ce qui est rentré. */}
       <Route path="/collecte" element={<RoutePrivee roles={["point_vente"]}><Collecte /></RoutePrivee>} />
+      {/* Ce qui est promis par Facebook et WhatsApp, à livrer plus tard. */}
+      <Route path="/commandes" element={<RoutePrivee roles={["point_vente"]}><Commandes /></RoutePrivee>} />
       <Route path="/creances" element={<RoutePrivee roles={["point_vente"]}><Creances /></RoutePrivee>} />
       {/* Le compte d'un client grossiste, réglé ou non — l'écran Créances ne
           garde que les impayées. */}
