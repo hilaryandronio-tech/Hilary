@@ -14,17 +14,20 @@ export default function Direction() {
   const [creanceTotale, setCreanceTotale] = useState(0);
   const [days, setDays] = useState([]);
   const [saisies, setSaisies] = useState([]);
+  const [lots, setLots] = useState([]);
+  const [ponteParLot, setPonteParLot] = useState({});
 
   useEffect(() => {
     (async () => {
       const [{ data: jrs }, { data: eff }, { data: creances }, { data: taux }] = await Promise.all([
         supabase.from("v_journalier").select("*").eq("date", today()).maybeSingle(),
-        supabase.from("v_effectif").select("vivant"),
+        supabase.from("v_effectif").select("lot_id, nom, en_ponte, vivant"),
         supabase.from("v_creances").select("montant"),
         supabase.from("v_taux_ponte").select("date, taux_ponte").gte("date", ilYA(6)),
       ]);
       if (jrs) setJour(jrs);
       setCheptel((eff ?? []).reduce((s, l) => s + l.vivant, 0));
+      setLots([...(eff ?? [])].sort((a, b) => a.lot_id.localeCompare(b.lot_id)));
       setCreanceTotale((creances ?? []).reduce((s, c) => s + c.montant, 0));
       setDays(
         [...Array(7)].map((_, i) => {
@@ -39,6 +42,17 @@ export default function Direction() {
         supabase.from("ventes").select("canal, montant, credit, clients(nom)").eq("date", today()),
         supabase.from("charges").select("categorie, montant").eq("date", today()),
       ]);
+
+      // Œufs du jour par bâtiment, pour le taux de ponte de chaque vague : le
+      // taux global masque un bâtiment qui décroche.
+      setPonteParLot(
+        Object.fromEntries(
+          (pontes ?? []).map((p) => [
+            p.lot_id,
+            (p.ponte_lignes ?? []).reduce((s, l) => s + l.oeufs, 0),
+          ])
+        )
+      );
 
       const lignes = [];
       (ferme ?? []).forEach((f) => {
@@ -111,6 +125,54 @@ export default function Direction() {
             <div className="tf-kpi-n">{fmt(creanceTotale)}</div>
             <div className="tf-kpi-l">Créances totales à recouvrer (Ar)</div>
           </div>
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Taux de ponte par bâtiment</span>
+            <span className="tf-tag">AUJOURD'HUI</span>
+          </div>
+          <div className="tf-releve-cadre">
+            <table className="tf-releve">
+              <thead>
+                <tr>
+                  <th>Bâtiment</th>
+                  <th>Œufs</th>
+                  <th>Poules</th>
+                  <th>Taux</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lots.map((l) => {
+                  const oeufs = ponteParLot[l.lot_id];
+                  const saisi = oeufs !== undefined;
+                  // Deux raisons de ne pas afficher de taux, et aucune n'est
+                  // une mauvaise ponte : un bâtiment en poulettes ne pond pas
+                  // encore, et une fiche pas encore saisie n'est pas une
+                  // collecte nulle. Dans les deux cas « 0,0 % » ferait
+                  // chercher un problème qui n'existe pas.
+                  const affichable = l.en_ponte && saisi && l.vivant;
+                  return (
+                    <tr key={l.lot_id}>
+                      <th>
+                        {l.lot_id}
+                        <span className="tf-sous">
+                          {l.en_ponte ? (saisi ? "en ponte" : "pas encore saisi") : "poulettes"}
+                        </span>
+                      </th>
+                      <td>{saisi ? fmt(oeufs) : "—"}</td>
+                      <td>{fmt(l.vivant)}</td>
+                      <td>{affichable ? `${((oeufs / l.vivant) * 100).toFixed(1)} %` : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="tf-note">
+            Le taux global masque un bâtiment qui décroche : c'est ici qu'un écart entre deux vagues
+            se voit. Les cassés y comptent, la poule les a pondus.
+          </p>
         </div>
 
         <div className="tf-card">

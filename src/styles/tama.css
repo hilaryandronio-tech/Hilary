@@ -246,6 +246,11 @@
 .tf-releve tfoot tr[data-hors-total="1"] th,
 .tf-releve tfoot tr[data-hors-total="1"] td { border-top:1px dashed var(--line);
                                               font-weight:500; padding-top:6px; }
+/* Le taux de ponte : un ratio, pas une somme — pas de trait au-dessus, il
+   prolonge la ligne de total dont il est tiré. */
+.tf-releve tfoot tr[data-taux="1"] th,
+.tf-releve tfoot tr[data-taux="1"] td { border-top:none; padding-top:2px; color:var(--muted); }
+.tf-releve tfoot tr[data-taux="1"] td { color:var(--ink); }
 /* Valeur qui mérite un coup d'œil : une mortalité non nulle, une ration hors
    de la norme. En brique, jamais en gris — ça se lit dehors. */
 .tf-releve td[data-alerte="1"] { color:var(--brick); font-weight:600; }

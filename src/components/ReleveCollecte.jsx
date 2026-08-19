@@ -115,6 +115,8 @@ export default function ReleveCollecte({ date, lots }) {
 
   const totalLot = (lotId) => Object.values(collecte[lotId] ?? {}).reduce((s, n) => s + n, 0);
   const totalGeneral = lots.reduce((s, l) => s + totalLot(l.id), 0);
+  const poulesTotal = lots.reduce((s, l) => s + (l.vivant ?? 0), 0);
+  const toutesSaisies = lots.every((l) => collecte[l.id]);
   const enAttente = Object.keys(file).length > 0;
 
   // Une fiche en file remplace celle du serveur, elle ne s'y ajoute pas.
@@ -162,6 +164,32 @@ export default function ReleveCollecte({ date, lots }) {
               <th>Total œufs</th>
               {lots.map((l) => <td key={l.id}>{fmt(totalLot(l.id))}</td>)}
               <td>{fmt(totalGeneral)}</td>
+            </tr>
+            {/* Œufs du jour rapportés aux poules vivantes du bâtiment. Les
+                cassés y comptent, comme dans le total : ils se vendent, la
+                poule les a pondus.
+                Un bâtiment sans fiche affiche un tiret et non « 0,0 % » : une
+                collecte pas encore saisie n'est pas une ponte nulle, et un
+                bâtiment donné pour effondré ferait chercher un problème qui
+                n'existe pas. Le total suit la même règle — tant qu'une fiche
+                manque, il porterait sur un cheptel qu'il ne couvre pas. */}
+            <tr data-taux="1">
+              <th>
+                Taux de ponte
+                <span className="tf-sous">sur poules vivantes</span>
+              </th>
+              {lots.map((l) => (
+                <td key={l.id}>
+                  {collecte[l.id] && l.vivant
+                    ? `${((totalLot(l.id) / l.vivant) * 100).toFixed(1)} %`
+                    : "—"}
+                </td>
+              ))}
+              <td>
+                {toutesSaisies && poulesTotal
+                  ? `${((totalGeneral / poulesTotal) * 100).toFixed(1)} %`
+                  : "—"}
+              </td>
             </tr>
             {/* Sous le total, et volontairement dehors : les sales sont
                 nettoyés puis vendus, donc déjà comptés dans leur calibre —
