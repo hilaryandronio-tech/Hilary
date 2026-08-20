@@ -23,6 +23,7 @@ const ECRANS = {
   ],
   direction: [
     { to: "/direction", l: "Tableau de bord" },
+    { to: "/journal", l: "Journal" },
     { to: "/ferme", l: "Ferme" },
     { to: "/suivi", l: "Suivi" },
     { to: "/magasin", l: "Ponte" },

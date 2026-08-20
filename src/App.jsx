@@ -7,6 +7,7 @@ import Collecte from "./screens/Collecte";
 import Clients from "./screens/Clients";
 import Suivi from "./screens/Suivi";
 import Commandes from "./screens/Commandes";
+import Journal from "./screens/Journal";
 import PointVente from "./screens/PointVente";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
@@ -64,6 +65,8 @@ export default function App() {
       <Route path="/clients" element={<RoutePrivee roles={["point_vente"]}><Clients /></RoutePrivee>} />
       <Route path="/bilan" element={<RoutePrivee roles={["direction"]}><Bilan /></RoutePrivee>} />
       <Route path="/direction" element={<RoutePrivee roles={["direction"]}><Direction /></RoutePrivee>} />
+      {/* Le tableau de bord ne montre que le jour même — ici, les précédents. */}
+      <Route path="/journal" element={<RoutePrivee roles={["direction"]}><Journal /></RoutePrivee>} />
       <Route path="*" element={<Navigate to="/connexion" replace />} />
     </Routes>
   );
