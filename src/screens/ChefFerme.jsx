@@ -60,8 +60,35 @@ export default function ChefFerme() {
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const setPadVal = (v) => {
-    setDraft({ ...draft, [pad.key]: v });
+    // Le reste compté n'est pas une saisie du soir : il ne rejoint pas le
+    // brouillon, il déclenche une correction de stock à la validation.
+    if (pad.key !== "reste_reel") setDraft({ ...draft, [pad.key]: v });
     setPad({ ...pad, value: v });
+  };
+
+  // Cale le stock sur les sacs réellement comptés, en enregistrant l'écart
+  // comme une entrée — négative si le magasin contient moins que prévu. On
+  // vise la valeur affichée, brouillon du soir compris : c'est celle que le
+  // chef a sous les yeux au moment de compter.
+  const corrigerStock = async (resteVoulu) => {
+    const ecartKg = resteVoulu - stockAffiche;
+    if (Math.abs(ecartKg) < 1) return; // rien à corriger, et `sacs <> 0` le refuserait
+    await enqueue({
+      table: "livraisons_provende",
+      conflict: "id",
+      payload: {
+        id: uuid(), lot_id: lotId, date,
+        sacs: Number((ecartKg / SAC_KG).toFixed(2)),
+        poids_sac: SAC_KG,
+        motif: "comptage",
+        auteur: profil?.id,
+      },
+    });
+    setFlash(
+      `${lotId} : stock calé sur ${fmt(resteVoulu)} kg — ` +
+      `${ecartKg > 0 ? "+" : "−"}${fmt(Math.abs(ecartKg))} kg d'écart.`
+    );
+    setTimeout(() => setFlash(""), 4000);
   };
 
   const lot = lots.find((l) => l.id === lotId) ?? lots[0];
@@ -205,8 +232,19 @@ export default function ChefFerme() {
             <NumField label="Sacs reçus" unit="sacs" value={val("sacs")}
               detail={val("sacs") ? `${fmt(val("sacs") * SAC_KG)} kg` : null}
               onOpen={() => open("sacs", "Sacs de provende reçus", "sacs")} />
+            {/* Le reste est calculé, donc il dérive : un sac non noté, une
+                distribution oubliée, et l'écart s'installe. Ce champ devient
+                modifiable pour caler l'application sur les sacs réellement
+                comptés — la correction est enregistrée comme une entrée de
+                stock, positive ou négative. */}
             <NumField label="Reste aujourd'hui" unit="kg" value={Math.max(0, stockAffiche)}
-              detail={stockAffiche > 0 ? `${(stockAffiche / SAC_KG).toFixed(1)} sacs` : null} />
+              detail={stockAffiche > 0 ? `${(stockAffiche / SAC_KG).toFixed(1)} sacs` : null}
+              onOpen={() => setPad({
+                key: "reste_reel",
+                label: "Sacs réellement comptés en magasin",
+                unit: "kg",
+                value: Math.max(0, stockAffiche),
+              })} />
           </div>
           {stockIncoherent ? (
             <div className="tf-live" data-alerte="1">
@@ -260,7 +298,14 @@ export default function ChefFerme() {
       </div>
 
       {flash && <div className="tf-flash">{flash}</div>}
-      <Keypad field={pad} onChange={setPadVal} onClose={() => setPad(null)} />
+      <Keypad
+        field={pad}
+        onChange={setPadVal}
+        onClose={() => {
+          if (pad?.key === "reste_reel") corrigerStock(pad.value);
+          setPad(null);
+        }}
+      />
     </div>
   );
 }
