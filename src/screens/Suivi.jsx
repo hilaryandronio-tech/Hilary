@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import AlerteEchecs from "../components/AlerteEchecs";
+import Soins from "../components/Soins";
 import { dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
 import { enqueue, onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
@@ -201,6 +202,8 @@ export default function Suivi() {
         </div>
 
         <AlerteEchecs tables={TABLES} />
+
+        {lotId && <Soins lotId={lotId} />}
 
         {lot && (
           <div className="tf-kpis">
