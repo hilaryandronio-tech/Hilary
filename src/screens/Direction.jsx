@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
-import { fmt, today } from "../components/format";
+import Courbe, { COURBE_OR, COURBE_BLEU } from "../components/Courbe";
+import { fmt, dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
+import { lectureCachee } from "../lib/cacheLecture";
 
 const zeroJour = {
   oeufs: 0, valeur_collecte: 0, mortalite: 0, provende_kg: 0,
@@ -12,29 +14,24 @@ export default function Direction() {
   const [jour, setJour] = useState(zeroJour);
   const [cheptel, setCheptel] = useState(0);
   const [creanceTotale, setCreanceTotale] = useState(0);
-  const [days, setDays] = useState([]);
   const [saisies, setSaisies] = useState([]);
   const [lots, setLots] = useState([]);
   const [ponteParLot, setPonteParLot] = useState({});
+  const [serie, setSerie] = useState([]);        // v_journalier sur la période
+  const [periode, setPeriode] = useState(30);
+  const [params, setParams] = useState({ cout_poulette: 0, duree_ponte_sem: 52 });
 
   useEffect(() => {
     (async () => {
-      const [{ data: jrs }, { data: eff }, { data: creances }, { data: taux }] = await Promise.all([
+      const [{ data: jrs }, { data: eff }, { data: creances }] = await Promise.all([
         supabase.from("v_journalier").select("*").eq("date", today()).maybeSingle(),
         supabase.from("v_effectif").select("lot_id, nom, en_ponte, vivant"),
         supabase.from("v_creances").select("montant"),
-        supabase.from("v_taux_ponte").select("date, taux_ponte").gte("date", ilYA(6)),
       ]);
       if (jrs) setJour(jrs);
       setCheptel((eff ?? []).reduce((s, l) => s + l.vivant, 0));
       setLots([...(eff ?? [])].sort((a, b) => a.lot_id.localeCompare(b.lot_id)));
       setCreanceTotale((creances ?? []).reduce((s, c) => s + c.montant, 0));
-      setDays(
-        [...Array(7)].map((_, i) => {
-          const d = ilYA(6 - i);
-          return { d, taux: taux?.find((t) => t.date === d)?.taux_ponte ?? 0 };
-        })
-      );
 
       const [{ data: ferme }, { data: pontes }, { data: ventes }, { data: charges }] = await Promise.all([
         supabase.from("saisies_ferme").select("lot_id, provende_kg, mortalite").eq("date", today()),
@@ -53,6 +50,21 @@ export default function Direction() {
           ])
         )
       );
+
+      const [{ data: jours }, { data: parametres }] = await Promise.all([
+        lectureCachee("v_journalier:graphiques", () =>
+          supabase
+            .from("v_journalier")
+            .select("date, oeufs, provende_kg, cout_provende, encaisse, livre_credit, charges, poules_en_ponte")
+            .order("date", { ascending: false })
+            .limit(90)
+        ),
+        lectureCachee("parametres", () => supabase.from("parametres").select("cle, valeur")),
+      ]);
+      if (jours) setSerie([...jours].sort((a, b) => a.date.localeCompare(b.date)));
+      if (parametres) {
+        setParams(Object.fromEntries(parametres.map((p) => [p.cle, Number(p.valeur)])));
+      }
 
       const lignes = [];
       (ferme ?? []).forEach((f) => {
@@ -75,6 +87,33 @@ export default function Direction() {
   }, []);
 
   const tauxJour = jour.poules_en_ponte ? (jour.oeufs / jour.poules_en_ponte) * 100 : 0;
+
+  // Les trois graphiques partagent la même fenêtre et les mêmes journées.
+  const fenetre = useMemo(() => serie.slice(-periode), [serie, periode]);
+  const etiquettes = fenetre.map((j) => dLabel(j.date));
+
+  const graphiques = useMemo(() => {
+    // Amortissement quotidien d'une poulette, comme au Bilan : l'achat et
+    // l'élevage étalés sur la durée de ponte prévue.
+    const parPouleParJour = params.duree_ponte_sem
+      ? params.cout_poulette / (params.duree_ponte_sem * 7)
+      : 0;
+    const ca = fenetre.map((j) => Number(j.encaisse ?? 0) + Number(j.livre_credit ?? 0));
+    const benefice = fenetre.map((j, i) => {
+      const amortissement = parPouleParJour * Number(j.poules_en_ponte ?? 0);
+      return ca[i] - Number(j.charges ?? 0) - Number(j.cout_provende ?? 0) - amortissement;
+    });
+    return {
+      ca,
+      benefice,
+      // Une journée sans collecte n'est pas une ponte nulle : elle n'est pas
+      // encore saisie. On coupe la courbe plutôt que de la faire plonger.
+      taux: fenetre.map((j) =>
+        j.oeufs && j.poules_en_ponte ? (j.oeufs / j.poules_en_ponte) * 100 : null
+      ),
+      provende: fenetre.map((j) => (j.provende_kg ? Number(j.provende_kg) : null)),
+    };
+  }, [fenetre, params]);
 
   return (
     <div className="tf">
@@ -175,20 +214,71 @@ export default function Direction() {
           </p>
         </div>
 
+        <div className="tf-chips">
+          {[7, 30, 90].map((p) => (
+            <button key={p} className="tf-chip" data-on={periode === p ? 1 : 0}
+              onClick={() => setPeriode(p)}>{p} jours</button>
+          ))}
+        </div>
+
         <div className="tf-card">
           <div className="tf-cardhead">
-            <span className="tf-cardtitle">Taux de ponte — 7 jours</span>
-            <span className="tf-tag">OBJECTIF 90 %</span>
+            <span className="tf-cardtitle">Chiffre d'affaires et bénéfice</span>
+            <span className="tf-tag">EN ARIARY</span>
           </div>
-          <div className="tf-bars">
-            {days.map((d, i) => (
-              <div key={d.d} className="tf-bar" data-last={i === 6 ? 1 : 0}
-                style={{ height: `${Math.max(3, Math.min(100, d.taux))}%` }} />
-            ))}
+          <Courbe
+            labels={etiquettes}
+            series={[
+              { nom: "Chiffre d'affaires", couleur: COURBE_OR, valeurs: graphiques.ca },
+              { nom: "Bénéfice", couleur: COURBE_BLEU, valeurs: graphiques.benefice },
+            ]}
+            format={(n) => `${fmt(n)} Ar`}
+          />
+          <p className="tf-note">
+            Le chiffre d'affaires compte les ventes du jour, encaissées ou à crédit. Le bénéfice en
+            retire les charges saisies, la provende au prix de chaque bâtiment et l'amortissement
+            des poulettes — l'écart entre les deux courbes, c'est le coût de la journée.
+            {!params.cout_poulette && " Renseigne le coût d'une poulette au Bilan, sans lui l'amortissement est nul et le bénéfice trop beau."}
+          </p>
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Taux de ponte</span>
+            <span className="tf-tag">TOUS BÂTIMENTS</span>
           </div>
-          <div className="tf-barlabels">
-            {days.map((d) => <div key={d.d} className="tf-barlabel">{d.taux ? Math.round(d.taux) : "·"}</div>)}
+          <Courbe
+            labels={etiquettes}
+            unite=" %"
+            format={(n) => n.toFixed(1)}
+            zeroDansLeCadre={false}
+            repere={{ valeur: 90, nom: "objectif 90 %" }}
+            series={[{ nom: "Taux de ponte", couleur: COURBE_OR, valeurs: graphiques.taux }]}
+          />
+          <p className="tf-note">
+            La courbe s'interrompt les jours sans fiche de ponte : une collecte non saisie n'est pas
+            une ponte nulle. Le taux rapporte les œufs au cheptel d'aujourd'hui, donc les valeurs
+            anciennes paraissent un peu hautes après une forte mortalité.
+          </p>
+        </div>
+
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Provende distribuée</span>
+            <span className="tf-tag">EN KILOS</span>
           </div>
+          <Courbe
+            labels={etiquettes}
+            unite=" kg"
+            format={(n) => fmt(n)}
+            zeroDansLeCadre={false}
+            series={[{ nom: "Provende", couleur: COURBE_BLEU, valeurs: graphiques.provende }]}
+          />
+          <p className="tf-note">
+            Tous bâtiments confondus. Une ration qui décroche d'un jour à l'autre signale plus
+            souvent une saisie oubliée qu'un vrai changement — l'écran Ferme donne le détail par
+            bâtiment, en grammes par poule.
+          </p>
         </div>
 
         <div className="tf-card">
@@ -210,8 +300,3 @@ export default function Direction() {
   );
 }
 
-function ilYA(joursAvant) {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - joursAvant);
-  return dt.toISOString().slice(0, 10);
-}

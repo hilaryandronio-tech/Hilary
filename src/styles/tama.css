@@ -223,12 +223,26 @@
 .tf-kpi[data-hero="1"] { grid-column:span 2; border-color:var(--ink); border-left:4px solid var(--yolk); }
 .tf-kpi[data-hero="1"] .tf-kpi-n { font-size:40px; }
 
-.tf-bars { display:flex; align-items:flex-end; gap:5px; height:78px; margin:14px 0 6px; }
-.tf-bar { flex:1; background:var(--line); border-radius:1px 1px 0 0; min-height:3px; position:relative; }
-.tf-bar[data-last="1"] { background:var(--yolk); }
-.tf-barlabels { display:flex; gap:5px; }
-.tf-barlabel { flex:1; text-align:center; font-family:'IBM Plex Mono',monospace;
-               font-size:9px; color:var(--muted); }
+/* Graphiques — grille et axes en retrait, marques fines, texte toujours en
+   encre et jamais dans la couleur de la série. */
+.tf-courbe { margin:6px 0 2px; }
+.tf-courbe-svg { width:100%; height:auto; display:block; touch-action:manipulation; }
+.tf-courbe-grille { stroke:var(--line); stroke-width:1; }
+.tf-courbe-zero   { stroke:var(--muted); stroke-width:1; }
+.tf-courbe-repere { stroke:var(--muted); stroke-width:1; stroke-dasharray:3 3; }
+.tf-courbe-viseur { stroke:var(--ink); stroke-width:1; stroke-dasharray:2 3; }
+.tf-courbe-axe { font-family:'IBM Plex Mono',monospace; font-size:9px; fill:var(--muted); }
+
+.tf-courbe-releve { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px;
+                    font-size:12px; color:var(--ink); min-height:34px; margin-bottom:2px; }
+.tf-courbe-invite { color:var(--muted); }
+.tf-courbe-val { font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+.tf-courbe-releve i, .tf-courbe-legende i { display:inline-block; width:9px; height:9px;
+                                            border-radius:2px; margin-right:5px;
+                                            vertical-align:baseline; }
+.tf-courbe-legende { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px;
+                     color:var(--muted); margin-top:4px; }
+
 
 /* Relevé de la collecte : un calibre par ligne, un bâtiment par colonne. Les
    zéros s'affichent en clair — c'est un calibre oublié qu'on cherche à
