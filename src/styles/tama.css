@@ -143,6 +143,9 @@
               padding:9px 12px; font-size:12px; font-weight:600; cursor:pointer;
               font-family:'IBM Plex Sans',sans-serif; white-space:nowrap; }
 .tf-due-btn:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+/* Action destructrice : en creux et en brique, pour qu'elle ne se confonde
+   pas avec le bouton plein qu'on presse à longueur de journée. */
+.tf-due-btn[data-danger="1"] { background:transparent; border-color:var(--brick); color:var(--brick); }
 /* « Tout » et « Partiel » côte à côte sous le montant restant dû. */
 .tf-due-actions { display:flex; gap:5px; margin-top:4px; }
 

@@ -101,6 +101,8 @@ export async function oublierEchec(id) {
  *  - kind "upsert" (with `conflict`, e.g. "id" or "vente_id,calibre") — the
  *    default shape for anything the app inserts, so a replay is harmless.
  *  - kind "update" — targets existing rows via `match`.
+ *  - kind "delete" — supprime les lignes désignées par `match`. Rejouable
+ *    aussi : supprimer une ligne déjà partie ne lève pas d'erreur.
  *  - `groupe` ties related operations together (a ponte header and its lines):
  *    if one fails for good, the whole group is set aside rather than leaving
  *    orphan lines pointing at a header that never landed.
@@ -116,6 +118,7 @@ async function envoyer(item) {
   const query = supabase.from(item.table);
   if (item.kind === "update") return (await query.update(item.payload).match(item.match)).error;
   if (item.kind === "insert") return (await query.insert(item.payload)).error;
+  if (item.kind === "delete") return (await query.delete().match(item.match)).error;
   return (await query.upsert(item.payload, { onConflict: item.conflict })).error;
 }
 
