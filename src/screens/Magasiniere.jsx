@@ -6,7 +6,8 @@ import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
 import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES, POIDS, PRIX_CASSE } from "../data/constants";
-import { enqueue, idStable } from "../lib/offlineQueue";
+import { enqueue, idStable, operationsEnAttente } from "../lib/offlineQueue";
+import { supabase } from "../lib/supabaseClient";
 import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
 
@@ -19,12 +20,74 @@ export default function Magasiniere() {
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
   const [dejaEnregistre, setDejaEnregistre] = useState(false);
+  const [ficheExistante, setFicheExistante] = useState(false);
 
   // Le bâtiment sélectionné doit rester dans la liste chargée depuis Supabase :
   // sinon on saisirait sur un bâtiment qui n'est plus en ponte.
   useEffect(() => {
     setLotId((id) => (lots.some((l) => l.id === id) ? id : lots[0]?.id ?? null));
   }, [lots]);
+
+  // Relire la fiche du jour choisi et la remettre dans les champs. Sans ça
+  // l'écran repartait vide : corriger un seul calibre obligeait à retaper tous
+  // les autres, et une magasinière qui saisissait la seule valeur fautive
+  // remettait tout le reste à zéro — l'enregistrement écrit toutes les lignes,
+  // y compris celles laissées vides.
+  useEffect(() => {
+    if (!lotId || !date) return;
+    let vivant = true;
+    (async () => {
+      const ponteId = idStable("ponte", date, lotId);
+      const { data } = await supabase
+        .from("pontes")
+        .select("oeufs_casses, oeufs_sales, oeufs_perdus, ponte_lignes(calibre, oeufs)")
+        .eq("date", date)
+        .eq("lot_id", lotId)
+        .maybeSingle();
+
+      // Une fiche encore en file n'est pas sur le serveur : c'est pourtant
+      // elle qui fait foi, elle est plus récente que tout ce qu'on lirait.
+      const [entetes, lignes] = await Promise.all([
+        operationsEnAttente("pontes"),
+        operationsEnAttente("ponte_lignes"),
+      ]);
+      const enFile = entetes.map((op) => op.payload).find((p) => p?.id === ponteId);
+      const lignesEnFile = lignes
+        .flatMap((op) => [].concat(op.payload))
+        .filter((l) => l?.ponte_id === ponteId);
+
+      if (!vivant) return;
+      const source = enFile ?? data;
+      if (!source) {
+        setDraft({});
+        setFicheExistante(false);
+        setDejaEnregistre(false);
+        return;
+      }
+      const parCalibre = {};
+      (lignesEnFile.length ? lignesEnFile : data?.ponte_lignes ?? []).forEach((l) => {
+        parCalibre[l.calibre] = l.oeufs;
+      });
+      const repris = {
+        casse: source.oeufs_casses ?? 0,
+        sale: source.oeufs_sales ?? 0,
+        perdu: source.oeufs_perdus ?? 0,
+      };
+      // Les lignes sont stockées en œufs. On les repose comme elles ont été
+      // saisies : les alvéoles pleines d'un côté, le reste au détail.
+      CALIBRES.forEach((c) => {
+        const oeufs = parCalibre[c] ?? 0;
+        repris["c" + c] = Math.floor(oeufs / ALV);
+        repris["d" + c] = oeufs % ALV;
+      });
+      setDraft(repris);
+      setFicheExistante(true);
+      // Rien n'a encore changé : le bouton reste éteint jusqu'à la première
+      // correction, pour ne pas réécrire une fiche à l'identique.
+      setDejaEnregistre(true);
+    })();
+    return () => { vivant = false; };
+  }, [date, lotId]);
 
   const val = (k) => draft[k] || 0;
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
@@ -120,12 +183,21 @@ export default function Magasiniere() {
         <h1 className="tf-h1">Collecte par calibre</h1>
         <p className="tf-sub">Choisis le bâtiment, compte en alvéoles de 30. La conversion en œufs est automatique.</p>
 
-        <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); setDejaEnregistre(false); }} />
+        {/* Le changement de date déclenche la relecture ci-dessus : inutile de
+            vider les champs ici, ce serait un clignotement pour rien. */}
+        <DateSelector value={date} onChange={setDate} />
+
+        {ficheExistante && (
+          <p className="tf-note">
+            Fiche déjà saisie pour {dLabel(date)} — les chiffres ci-dessous sont ceux enregistrés.
+            Corrige la case fautive, le reste ne bouge pas.
+          </p>
+        )}
 
         <div className="tf-lots">
           {lots.map((l) => (
             <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0}
-              onClick={() => { setLotId(l.id); setDraft({}); setDejaEnregistre(false); }}>
+              onClick={() => setLotId(l.id)}>
               <div className="tf-lot-id">{l.id}</div>
               <div className="tf-lot-m">{fmt(l.vivant)}</div>
             </button>
@@ -198,7 +270,7 @@ export default function Magasiniere() {
       <div className="tf-cta">
         <div className="tf-cta-in">
           <button className="tf-btn" disabled={!peutEnregistrer} onClick={enregistrer}>
-            {dejaEnregistre ? "Enregistré" : "Enregistrer"}
+            {dejaEnregistre ? "Enregistré" : ficheExistante ? "Corriger la fiche" : "Enregistrer"}
           </button>
           <button className="tf-btn tf-btn-ghost" onClick={() => { setDraft({}); setDejaEnregistre(false); }}>Effacer</button>
         </div>
