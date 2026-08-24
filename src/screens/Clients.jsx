@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "../components/AlerteEchecs";
 import ChoixClient from "../components/ChoixClient";
+import NouveauClient from "../components/NouveauClient";
 import { useClients } from "../lib/useClients";
 
 const TABLES = ["ventes", "vente_lignes"];
@@ -134,6 +135,11 @@ export default function Clients() {
         <p className="tf-eyebrow">Compte client</p>
         <h1 className="tf-h1">Historique des livraisons</h1>
         <p className="tf-sub">Toutes les livraisons du client, réglées ou non, mois par mois.</p>
+
+        {/* Créer le client depuis l'écran qui montre déjà toute la liste :
+            c'est là qu'on constate qu'il manque. Sélectionné aussitôt créé,
+            pour enchaîner sur sa fiche sans le rechercher. */}
+        <NouveauClient clients={clients} onCree={setClientNom} />
 
         <ChoixClient clients={clients} selection={client?.nom} onSelect={setClientNom} />
 

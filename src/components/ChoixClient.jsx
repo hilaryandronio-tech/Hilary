@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { sansAccent } from "./format";
 
 // Une pastille par client tenait tant qu'il y en avait quatre. Avec près de
 // soixante, il faut chercher. Le champ filtre sans tenir compte des accents ni
@@ -10,8 +11,6 @@ import { useMemo, useState } from "react";
 // sans quoi on cherche un client, on tape des chiffres sans avoir cliqué, et
 // la vente part chez le précédent.
 
-const sansAccent = (s) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 export default function ChoixClient({ clients, selection, onSelect, marque }) {
   const [recherche, setRecherche] = useState("");
