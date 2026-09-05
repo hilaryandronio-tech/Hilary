@@ -3,11 +3,12 @@
 .tf { --bg:#E4EFE7; --card:#EFFCF3; --ink:#36251E; --muted:#7C6A5F;
       --yolk:#FAA429; --brick:#AF481F; --moss:#36251E; --line:#CBDACE;
       --field:#F7FFF9;
+      --sur-brique:#EFFCF3; --sur-brique-doux:#F7E4DA; --bord-brique:#EEC9B8;
       background:var(--bg); color:var(--ink); min-height:100vh;
       font-family:'IBM Plex Sans',system-ui,sans-serif; padding-bottom:120px; }
 .tf *, .tf *::before, .tf *::after { box-sizing:border-box; }
 
-.tf-head { position:sticky; top:0; z-index:20; background:var(--ink);
+.tf-head { position:sticky; top:0; z-index:20; background:var(--brick);
            padding:12px 16px 0; }
 .tf-brand { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .tf-mark { display:flex; align-items:center; gap:9px; }
@@ -16,7 +17,7 @@
            font-size:19px; letter-spacing:0.01em; text-transform:uppercase;
            color:var(--card); line-height:1.05; }
 .tf-logo span { color:var(--yolk); }
-.tf-date { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#B9A99D;
+.tf-date { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--sur-brique-doux);
            text-transform:uppercase; letter-spacing:0.06em; }
 .tf-brand-etat { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
 
@@ -24,10 +25,10 @@
    ligne. En échec : brique et cliquable, c'est une saisie qui manquera aux
    comptes tant que personne n'y touche. */
 .tf-sync { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em;
-           text-transform:uppercase; color:#B9A99D; border:1px solid #5A463C;
+           text-transform:uppercase; color:var(--sur-brique-doux); border:1px solid var(--bord-brique);
            border-radius:2px; padding:3px 7px; background:transparent; }
-.tf-sync[data-echec="1"] { background:var(--brick); border-color:var(--brick); color:#fff;
-                           font-weight:600; cursor:pointer; }
+.tf-sync[data-echec="1"] { background:var(--card); border-color:var(--card); color:var(--brick);
+                           font-weight:700; cursor:pointer; }
 .tf-sync[data-echec="1"]:focus-visible { outline:2px solid var(--yolk); outline-offset:2px; }
 
 .tf-echecs { max-height:44vh; overflow-y:auto; margin:10px 0 14px; }
@@ -38,11 +39,12 @@
 .tf-echec-e { font-size:12px; color:var(--brick); margin-top:2px; }
 
 .tf-roles { display:flex; gap:6px; margin-top:12px; overflow-x:auto; padding-bottom:10px; }
-.tf-role { flex:0 0 auto; border:1px solid #5A463C; background:transparent;
+.tf-role { flex:0 0 auto; border:1px solid var(--bord-brique); background:transparent;
            border-radius:2px; padding:7px 12px; font-size:12px; font-weight:500;
-           color:#C9BAB0; cursor:pointer; white-space:nowrap;
+           color:var(--sur-brique); cursor:pointer; white-space:nowrap;
            font-family:'IBM Plex Sans',sans-serif; }
-.tf-role[data-on="1"], .tf-role-active { background:var(--yolk); border-color:var(--yolk); color:var(--ink); font-weight:600; }
+.tf-role[data-on="1"], .tf-role-active { background:var(--yolk); border-color:var(--bord-brique);
+                                         color:var(--ink); font-weight:600; }
 .tf-role:focus-visible { outline:2px solid var(--yolk); outline-offset:2px; }
 .tf-role { text-decoration:none; display:inline-block; }
 

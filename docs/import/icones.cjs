@@ -174,11 +174,11 @@ const marque = meilleure
   : b;
 console.log("marque seule :", marque, "→", marque.x2 - marque.x1 + 1, "×", marque.y2 - marque.y1 + 1);
 
-const BRUN = [54, 37, 30];   // var(--ink)
+const FOND = [175, 72, 31];  // var(--brick) — le fond du menu de démarrage
 const sorties = [
   ["public/icones/icone-192.png", 192, 6, null, b],
   ["public/icones/icone-512.png", 512, 16, null, b],
-  ["public/icones/icone-maskable-512.png", 512, 92, BRUN, b],
+  ["public/icones/icone-maskable-512.png", 512, 92, FOND, b],
   ["public/logo-marque.png", 512, 0, null, marque],   // le dessin seul, pour l'en-tête
 ];
 for (const [chemin, cote, marge, fond, boite] of sorties) {
