@@ -72,6 +72,7 @@ export default function Clients() {
   const [serveur, setServeur] = useState([]);
   const [file, setFile] = useState([]);
   const [aFacturer, setAFacturer] = useState(null);
+  const [panne, setPanne] = useState(null);
   const [semaine, setSemaine] = useState(derniereSemaine);
   const [periode, setPeriode] = useState(null);
   const [cherche, setCherche] = useState(false);
@@ -91,7 +92,17 @@ export default function Clients() {
       .order("date", { ascending: false });
     // Seule la dernière requête demandée a le droit d'écrire dans l'état.
     if (jeton !== requete.current) return { ids: new Set() };
+    // Une requête refusée — colonne absente, droits manquants — rendait un
+    // écran vide indiscernable d'un client sans livraison. Deux fois déjà ce
+    // silence a fait chercher des données perdues qui ne l'étaient pas.
+    // Une panne de réseau, elle, reste muette : c'est le régime normal ici,
+    // et on garde ce qu'on savait.
+    if (error && error.code) {
+      setPanne(`Lecture refusée par la base : ${error.message}`);
+      return { ids: new Set() };
+    }
     if (error || !data) return { ids: new Set() }; // hors ligne : on garde ce qu'on savait
+    setPanne(null);
     setServeur(data.map((v) => ({ ...v, lignes: v.vente_lignes ?? [] })));
     return { ids: new Set(data.map((v) => v.id)) };
   };
@@ -235,6 +246,17 @@ export default function Clients() {
             </button>
           </div>
         </div>
+
+        {panne && (
+          <div className="tf-card">
+            <p className="tf-livraison-s" data-alerte="1">{panne}</p>
+            <p className="tf-note">
+              L'historique affiché est peut-être incomplet. Ce n'est pas une coupure réseau :
+              la base a répondu, en refusant. Une migration non exécutée en est la cause la
+              plus fréquente.
+            </p>
+          </div>
+        )}
 
         <AlerteEchecs tables={TABLES} />
 
