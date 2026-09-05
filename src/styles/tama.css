@@ -319,7 +319,7 @@
             color:#fff; padding:12px 14px; border-radius:2px; font-size:13px; max-width:608px;
             margin:0 auto; text-align:center; }
 
-.tf-login { position:fixed; inset:0; z-index:80; background:var(--ink); display:flex;
+.tf-login { position:fixed; inset:0; z-index:80; background:var(--brick); display:flex;
             flex-direction:column; align-items:center; justify-content:center;
             padding:28px 20px; overflow-y:auto;
             font-family:'IBM Plex Sans',system-ui,sans-serif; }
@@ -328,14 +328,14 @@
 .tf-login-t { font-family:'IBM Plex Sans Condensed',sans-serif; font-weight:700; font-size:23px;
               color:var(--card); text-align:center; text-transform:uppercase; letter-spacing:0.02em; }
 .tf-login-s { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.16em;
-              text-transform:uppercase; color:#B9A99D; text-align:center; margin:5px 0 26px; }
+              text-transform:uppercase; color:var(--sur-brique-doux); text-align:center; margin:5px 0 26px; }
 /* Version de l'application. Discrète mais lisible : c'est la première chose
    qu'on fait dire au téléphone quand deux appareils ne se comportent pas
    pareil. Sur l'écran de connexion, fond sombre ; dans l'en-tête, une pastille
    inerte en bout de rangée d'onglets. */
 .tf-login-v { text-align:center; margin:22px 0 0; }
 .tf-version { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em;
-              color:#B9A99D; }
+              color:var(--sur-brique-doux); }
 .tf-role-version { border-color:transparent; padding-left:4px; cursor:default; }
 
 /* Rappel du clavier sous le pavé. Discret : sur téléphone il ne sert à rien,
@@ -343,17 +343,17 @@
 .tf-pad-aide { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted);
                text-align:center; margin:10px 0 0; }
 .tf-login-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em;
-                text-transform:uppercase; color:#B9A99D; margin-bottom:8px; }
+                text-transform:uppercase; color:var(--sur-brique-doux); margin-bottom:8px; }
 .tf-who { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:22px; }
-.tf-who button { border:1px solid #5A463C; background:transparent; color:#C9BAB0; border-radius:2px;
+.tf-who button { border:1px solid var(--bord-brique); background:transparent; color:var(--sur-brique); border-radius:2px;
                  padding:12px 8px; font-size:13px; cursor:pointer; text-align:left;
                  font-family:'IBM Plex Sans',sans-serif; }
-.tf-who button[data-on="1"] { background:var(--yolk); border-color:var(--yolk); color:var(--ink); font-weight:600; }
+.tf-who button[data-on="1"] { background:var(--yolk); border-color:var(--bord-brique); color:var(--ink); font-weight:600; }
 .tf-who small { display:block; font-family:'IBM Plex Mono',monospace; font-size:9px; opacity:.75; margin-top:2px; }
 /* Case du code sur ordinateur, à la place des douze touches. Chiffres espacés
    et centrés : on relit un code masqué au nombre de points, pas au texte. */
 .tf-login-code { display:block; width:100%; box-sizing:border-box; margin-bottom:16px;
-                 border:1px solid #5A463C; border-radius:2px; background:transparent;
+                 border:1px solid var(--bord-brique); border-radius:2px; background:transparent;
                  color:var(--card); padding:14px 12px; text-align:center;
                  font-family:'IBM Plex Mono',monospace; font-size:22px; letter-spacing:0.5em;
                  text-indent:0.5em; }
@@ -365,16 +365,18 @@
 .tf-login .tf-keys[data-seul="1"] { grid-template-columns:1fr; max-width:none; }
 
 .tf-pin { display:flex; gap:9px; justify-content:center; margin-bottom:22px; }
-.tf-pin i { width:15px; height:15px; border-radius:50%; border:1.5px solid #5A463C; }
-.tf-pin i[data-on="1"] { background:var(--yolk); border-color:var(--yolk); }
+.tf-pin i { width:15px; height:15px; border-radius:50%; border:1.5px solid var(--bord-brique); }
+.tf-pin i[data-on="1"] { background:var(--card); border-color:var(--card); }
 .tf-login .tf-keys { max-width:300px; }
-.tf-login .tf-key { background:transparent; border-color:#5A463C; color:var(--card); padding:15px; }
+.tf-login .tf-key { background:transparent; border-color:var(--bord-brique); color:var(--card); padding:15px; }
 .tf-login .tf-key:active { background:var(--yolk); color:var(--ink); }
-.tf-login .tf-key[data-ok="1"] { background:var(--yolk); border-color:var(--yolk); color:var(--ink); font-weight:700; }
-.tf-login .tf-key[data-ok="1"]:disabled { background:#5A463C; border-color:#5A463C; color:#9A897E; }
+.tf-login .tf-key[data-ok="1"] { background:var(--yolk); border-color:var(--bord-brique); color:var(--ink); font-weight:700; }
+.tf-login .tf-key[data-ok="1"]:disabled { background:transparent; border-color:var(--bord-brique);
+                                          color:var(--sur-brique-doux); font-weight:500; }
 .tf-login-f { text-align:center; font-family:'IBM Plex Mono',monospace; font-size:9px;
-              letter-spacing:0.1em; color:#6E5A4E; margin-top:22px; text-transform:uppercase; }
-.tf-login-err { text-align:center; font-size:12px; color:var(--yolk); margin-bottom:14px; }
+              letter-spacing:0.1em; color:var(--sur-brique-doux); margin-top:22px; text-transform:uppercase; }
+.tf-login-err { text-align:center; font-size:12px; color:var(--card); font-weight:600;
+                margin-bottom:14px; }
 
 @media (prefers-reduced-motion:reduce){ .tf-pad-sheet{animation:none} }
 
