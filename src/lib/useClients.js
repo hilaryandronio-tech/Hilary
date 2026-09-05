@@ -22,15 +22,14 @@ export function useClients() {
       const { data } = await lectureCachee("clients", () =>
         supabase
           .from("clients")
-          .select("id, nom, tarifs_clients(calibre, prix)")
+          .select("id, nom, adresse, nif, stat, refs_legales, telephone_fac, langue, coordonnees_paiement, conditionnement, delai_paiement_jours, tarifs_clients(calibre, prix)")
           .eq("actif", true)
       );
       if (!vivant) return;
       if (data?.length) {
         setServeur(
           data.map((c) => ({
-            id: c.id,
-            nom: c.nom,
+            ...c,
             tarifs: Object.fromEntries((c.tarifs_clients ?? []).map((t) => [t.calibre, t.prix])),
           }))
         );

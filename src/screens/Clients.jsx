@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "../components/AlerteEchecs";
 import ChoixClient from "../components/ChoixClient";
+import Facture from "../components/Facture";
 import NouveauClient from "../components/NouveauClient";
 import { useClients } from "../lib/useClients";
 
@@ -55,6 +56,7 @@ export default function Clients() {
   const [mois, setMois] = useState(moisCourant());
   const [serveur, setServeur] = useState([]);
   const [file, setFile] = useState([]);
+  const [aFacturer, setAFacturer] = useState(null);
   const requete = useRef(0);
 
   const client = clients.find((c) => c.nom === clientNom) ?? clients[0];
@@ -64,7 +66,7 @@ export default function Clients() {
     const [debut, fin] = bornesMois(mois);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant)")
+      .select("id, date, created_at, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", debut)
       .lte("date", fin)
@@ -190,6 +192,13 @@ export default function Clients() {
                 <span className="tf-tag">{fmt(l.montant)} AR</span>
               </div>
               <div className="tf-livraison-s" data-alerte={s.alerte ? 1 : 0}>{s.texte}</div>
+              {/* Une livraison encore en file n'a ni heure d'enregistrement ni
+                  numéro : sa facture serait sans référence. */}
+              {!l.enAttente && l.lignes.length > 0 && (
+                <div className="tf-due-actions">
+                  <button className="tf-due-btn" onClick={() => setAFacturer(l)}>Facture</button>
+                </div>
+              )}
               {l.lignes.length > 0 ? (
                 <div className="tf-ticket">
                   {l.lignes.map((ligne) => (
@@ -206,6 +215,15 @@ export default function Clients() {
           );
         })}
       </main>
+
+      {aFacturer && (
+        <Facture
+          vente={aFacturer}
+          client={client}
+          commande={aFacturer.commandes?.[0]}
+          onFermer={() => setAFacturer(null)}
+        />
+      )}
     </div>
   );
 }

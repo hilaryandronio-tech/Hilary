@@ -414,3 +414,65 @@
                 align-items:start; }
   .tf-courbes > :first-child { grid-column:span 2; }
 }
+
+
+/* =====================================================================
+   Facture — reproduction des modèles envoyés aux clients. Volontairement à
+   l'écart du reste de la feuille : elle sort sur papier A4, pas sur un
+   téléphone au soleil, et n'emprunte donc ni les couleurs ni les tailles de
+   l'application.
+   ===================================================================== */
+.tf-facture-fond { position:fixed; inset:0; z-index:60; background:rgba(54,37,30,0.6);
+                   overflow-y:auto; padding:16px; }
+.tf-facture-cadre { max-width:820px; margin:0 auto; }
+.tf-facture-barre { display:flex; gap:8px; margin-bottom:12px; }
+
+.tf-facture { background:#fff; color:#1a1a1a; font-family:'IBM Plex Sans',sans-serif;
+              font-size:12px; line-height:1.45; padding:0 0 28px; }
+.tf-facture-tete { background:#AF481F; display:flex; align-items:center; gap:16px;
+                   padding:10px 18px; }
+.tf-facture-tete img { height:56px; width:auto; background:#fff; border-radius:4px; padding:3px; }
+.tf-facture-tete span { flex:1; text-align:center; color:#fff; font-size:34px;
+                        font-family:Georgia,'Times New Roman',serif; letter-spacing:0.01em; }
+
+.tf-facture-parties { display:flex; gap:28px; padding:22px 26px 0; }
+.tf-facture-nous { flex:1; }
+.tf-facture-nous strong { font-size:15px; display:block; margin-bottom:3px; }
+.tf-facture-eux { flex:1; padding-top:34px; }
+.tf-facture-eux p { margin:0 0 2px; }
+/* Les adresses et mentions légales arrivent de la base avec leurs retours à
+   la ligne : il faut les respecter, pas les recoller en un pavé. */
+.tf-facture-multi { white-space:pre-line; }
+.tf-facture-num { margin:14px 0 0; }
+.tf-facture-date { margin:10px 0 0; font-size:14px; }
+.tf-facture-date b { color:#1c5bbf; }
+
+.tf-facture-table { width:calc(100% - 52px); margin:26px 26px 0; border-collapse:collapse; }
+.tf-facture-table th { background:#AF481F; color:#fff; font-weight:600; padding:9px 10px;
+                       border:1px solid #1a1a1a; text-align:center; }
+.tf-facture-table td { padding:9px 10px; border:1px solid #1a1a1a; text-align:center; }
+/* Les trois premières cases de la ligne de total restent vides et sans bord,
+   comme sur les modèles : le total se détache au lieu de clore un tableau. */
+.tf-facture-total td:first-child { border:none; }
+.tf-facture-total td:nth-child(4) { font-weight:700; }
+.tf-facture-total td:last-child { font-weight:700; }
+
+.tf-facture-bas { padding:16px 26px 0; }
+.tf-facture-bas p { margin:0 0 10px; font-family:Georgia,'Times New Roman',serif; }
+.tf-facture-signature { text-align:center; margin-top:34px; }
+.tf-facture-paraphe { display:block; height:70px; margin:6px auto 0; }
+.tf-facture-merci { margin-top:14px; font-family:Georgia,'Times New Roman',serif; }
+
+/* À l'impression, seule la facture existe. Le reste de l'application — en-tête
+   collant, barre de boutons, fond sombre — n'a rien à faire sur le papier. */
+@media print {
+  body * { visibility:hidden; }
+  .tf-facture, .tf-facture * { visibility:visible; }
+  .tf-facture-fond { position:static; padding:0; background:none; overflow:visible; }
+  .tf-facture-barre { display:none; }
+  .tf-facture { position:absolute; left:0; top:0; width:100%; }
+  /* Les aplats de couleur sont l'identité de la facture : sans ça, les
+     navigateurs les suppriment à l'impression. */
+  .tf-facture-tete, .tf-facture-table th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  @page { size:A4; margin:12mm; }
+}
