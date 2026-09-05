@@ -221,64 +221,67 @@ export default function Direction() {
           ))}
         </div>
 
-        <div className="tf-card">
-          <div className="tf-cardhead">
-            <span className="tf-cardtitle">Chiffre d'affaires et bénéfice</span>
-            <span className="tf-tag">EN ARIARY</span>
+        {/* Deux par deux sur ordinateur, empilées sur téléphone. */}
+        <div className="tf-courbes">
+          <div className="tf-card">
+            <div className="tf-cardhead">
+              <span className="tf-cardtitle">Chiffre d'affaires et bénéfice</span>
+              <span className="tf-tag">EN ARIARY</span>
+            </div>
+            <Courbe
+              labels={etiquettes}
+              series={[
+                { nom: "Chiffre d'affaires", couleur: COURBE_OR, valeurs: graphiques.ca },
+                { nom: "Bénéfice", couleur: COURBE_BLEU, valeurs: graphiques.benefice },
+              ]}
+              format={(n) => `${fmt(n)} Ar`}
+            />
+            <p className="tf-note">
+              Le chiffre d'affaires compte les ventes du jour, encaissées ou à crédit. Le bénéfice en
+              retire les charges saisies, la provende au prix de chaque bâtiment et l'amortissement
+              des poulettes — l'écart entre les deux courbes, c'est le coût de la journée.
+              {!params.cout_poulette && " Renseigne le coût d'une poulette au Bilan, sans lui l'amortissement est nul et le bénéfice trop beau."}
+            </p>
           </div>
-          <Courbe
-            labels={etiquettes}
-            series={[
-              { nom: "Chiffre d'affaires", couleur: COURBE_OR, valeurs: graphiques.ca },
-              { nom: "Bénéfice", couleur: COURBE_BLEU, valeurs: graphiques.benefice },
-            ]}
-            format={(n) => `${fmt(n)} Ar`}
-          />
-          <p className="tf-note">
-            Le chiffre d'affaires compte les ventes du jour, encaissées ou à crédit. Le bénéfice en
-            retire les charges saisies, la provende au prix de chaque bâtiment et l'amortissement
-            des poulettes — l'écart entre les deux courbes, c'est le coût de la journée.
-            {!params.cout_poulette && " Renseigne le coût d'une poulette au Bilan, sans lui l'amortissement est nul et le bénéfice trop beau."}
-          </p>
-        </div>
-
-        <div className="tf-card">
-          <div className="tf-cardhead">
-            <span className="tf-cardtitle">Taux de ponte</span>
-            <span className="tf-tag">TOUS BÂTIMENTS</span>
+  
+          <div className="tf-card">
+            <div className="tf-cardhead">
+              <span className="tf-cardtitle">Taux de ponte</span>
+              <span className="tf-tag">TOUS BÂTIMENTS</span>
+            </div>
+            <Courbe
+              labels={etiquettes}
+              unite=" %"
+              format={(n) => n.toFixed(1)}
+              zeroDansLeCadre={false}
+              repere={{ valeur: 90, nom: "objectif 90 %" }}
+              series={[{ nom: "Taux de ponte", couleur: COURBE_OR, valeurs: graphiques.taux }]}
+            />
+            <p className="tf-note">
+              La courbe s'interrompt les jours sans fiche de ponte : une collecte non saisie n'est pas
+              une ponte nulle. Le taux rapporte les œufs au cheptel d'aujourd'hui, donc les valeurs
+              anciennes paraissent un peu hautes après une forte mortalité.
+            </p>
           </div>
-          <Courbe
-            labels={etiquettes}
-            unite=" %"
-            format={(n) => n.toFixed(1)}
-            zeroDansLeCadre={false}
-            repere={{ valeur: 90, nom: "objectif 90 %" }}
-            series={[{ nom: "Taux de ponte", couleur: COURBE_OR, valeurs: graphiques.taux }]}
-          />
-          <p className="tf-note">
-            La courbe s'interrompt les jours sans fiche de ponte : une collecte non saisie n'est pas
-            une ponte nulle. Le taux rapporte les œufs au cheptel d'aujourd'hui, donc les valeurs
-            anciennes paraissent un peu hautes après une forte mortalité.
-          </p>
-        </div>
-
-        <div className="tf-card">
-          <div className="tf-cardhead">
-            <span className="tf-cardtitle">Provende distribuée</span>
-            <span className="tf-tag">EN KILOS</span>
+  
+          <div className="tf-card">
+            <div className="tf-cardhead">
+              <span className="tf-cardtitle">Provende distribuée</span>
+              <span className="tf-tag">EN KILOS</span>
+            </div>
+            <Courbe
+              labels={etiquettes}
+              unite=" kg"
+              format={(n) => fmt(n)}
+              zeroDansLeCadre={false}
+              series={[{ nom: "Provende", couleur: COURBE_BLEU, valeurs: graphiques.provende }]}
+            />
+            <p className="tf-note">
+              Tous bâtiments confondus. Une ration qui décroche d'un jour à l'autre signale plus
+              souvent une saisie oubliée qu'un vrai changement — l'écran Ferme donne le détail par
+              bâtiment, en grammes par poule.
+            </p>
           </div>
-          <Courbe
-            labels={etiquettes}
-            unite=" kg"
-            format={(n) => fmt(n)}
-            zeroDansLeCadre={false}
-            series={[{ nom: "Provende", couleur: COURBE_BLEU, valeurs: graphiques.provende }]}
-          />
-          <p className="tf-note">
-            Tous bâtiments confondus. Une ration qui décroche d'un jour à l'autre signale plus
-            souvent une saisie oubliée qu'un vrai changement — l'écran Ferme donne le détail par
-            bâtiment, en grammes par poule.
-          </p>
         </div>
 
         <div className="tf-card">

@@ -376,4 +376,27 @@
   /* Les neuf calibres sur une seule rangée : à la souris, on saisit une fiche
      de ponte sans faire défiler. */
   .tf-grid4 { grid-template-columns:repeat(5,minmax(0,1fr)); }
+
+  /* La rangée d'onglets défile horizontalement parce qu'elle a été pensée pour
+     un pouce. À la souris, un défilement latéral est une gêne à chaque
+     navigation — et les dix onglets de la direction tiennent sur deux lignes. */
+  .tf-head { padding-left:24px; padding-right:24px; }
+  .tf-roles { flex-wrap:wrap; overflow-x:visible; }
+
+  /* Saisie à gauche, relevé du jour à droite : on voit ce qu'on tape et son
+     effet en même temps, au lieu de faire défiler entre les deux. Le relevé
+     reste à l'écran pendant qu'on descend dans la saisie.
+     Le relevé est écrit en premier dans la page — c'est l'ordre du téléphone,
+     où l'on veut voir l'état du jour avant d'ajouter. La grille le renvoie à
+     droite sans toucher à cet ordre. */
+  .tf-deux-colonnes { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,340px);
+                      gap:12px; align-items:start; }
+  .tf-colonne-releve { grid-column:2; grid-row:1; position:sticky; top:16px; }
+  .tf-colonne-saisie { grid-column:1; grid-row:1; }
+
+  /* Les courbes deux par deux. La première porte deux séries et une légende :
+     elle garde toute la largeur, les deux autres se partagent la rangée. */
+  .tf-courbes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;
+                align-items:start; }
+  .tf-courbes > :first-child { grid-column:span 2; }
 }

@@ -209,7 +209,14 @@ export default function Magasiniere() {
           ))}
         </div>
 
+        {/* Sur ordinateur, le relevé passe à droite et reste à l'écran
+            pendant qu'on descend dans la saisie. Sur téléphone, rien ne
+            change : il reste au-dessus, comme dans le flux du texte. */}
+        <div className="tf-deux-colonnes">
+        <div className="tf-colonne-releve">
         <ReleveCollecte date={date} lots={lots} />
+        </div>
+        <div className="tf-colonne-saisie">
 
         <div className="tf-card">
           <div className="tf-cardhead">
@@ -275,6 +282,9 @@ export default function Magasiniere() {
             Au-delà de 2 % de la collecte, il y a un problème de nid, de ramassage ou de calcium.
           </p>
         </div>
+        </div>
+        </div>
+
       </main>
 
       <div className="tf-cta">

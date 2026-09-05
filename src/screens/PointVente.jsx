@@ -217,7 +217,14 @@ export default function PointVente() {
         <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
         {/* Ce qui est déjà sorti ce jour-là, avant d'en ajouter. */}
+        {/* Sur ordinateur, le relevé passe à droite et reste à l'écran
+            pendant qu'on descend dans la saisie. Sur téléphone, rien ne
+            change : il reste au-dessus, comme dans le flux du texte. */}
+        <div className="tf-deux-colonnes">
+        <div className="tf-colonne-releve">
         <ReleveVentes date={date} />
+        </div>
+        <div className="tf-colonne-saisie">
 
         <div className="tf-card">
           <div className="tf-cardhead">
@@ -359,6 +366,9 @@ export default function PointVente() {
               : "Modifiable uniquement par un compte Direction."}
           </p>
         </div>
+        </div>
+        </div>
+
       </main>
 
       <div className="tf-cta">
