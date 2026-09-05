@@ -164,7 +164,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
 
         <article className="tf-facture" data-periode={periode ? 1 : 0}>
           <header className="tf-facture-tete">
-            <img src="/icones/icone-blanc-512.png" alt="" />
+            {/* Le seul logo à fond transparent : les icônes de l'application
+                portent toutes un carré de couleur, visible sur le bandeau. */}
+            <img src="/logo-tama-ferme.png" alt="" />
             <span>Tama Ferme</span>
           </header>
 
