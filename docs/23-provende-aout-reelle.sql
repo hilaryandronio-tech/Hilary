@@ -1,28 +1,30 @@
 -- =====================================================================
---  TAMA FERME — Réalignement de la provende d'août sur la feuille du magasin
+--  TAMA FERME — La provende d'août, telle que les feuilles du magasin
 --
---  La base portait des rations théoriques rondes — 300 kg pour V2 presque
---  tous les jours — là où la feuille « Provende TMF V1 et V2 » porte les
---  relevés réels, qui varient de 294 à 345 kg. La saisie du soir avait été
---  faite de mémoire plutôt que d'après la feuille. Sur le mois, la provende
---  distribuée était sous-comptée, donc le coût de production sous-évalué et
---  le stock restant surévalué.
+--  Trois journées de V2 (2, 17 et 28 août, 300 kg chacune) et une de V3
+--  (15 août, 175 kg) n'avaient jamais été saisies : 1 075 kg distribués mais
+--  absents des comptes, soit près de 2 970 000 Ar de charge manquante.
 --
---  Source : colonnes G (V1/kilos) et I (V2/kilos) de la feuille, 1er au
---  31 août 2026. Contrôle de transcription : la somme donne 391,73 sacs de
---  50 kg, exactement le total que la feuille affiche en bas de sa colonne
---  « Aliment/sacs ». Le total en kilos de la feuille (19 598) porte lui une
---  erreur de formule de 11,5 kg au 14 août — il n'a pas été suivi.
+--  Partout ailleurs le total du jour était juste, seule la répartition entre
+--  V1 et V2 différait — la base attribuait à V1 des kilos allés à V2. Sans
+--  effet sur le coût, les deux bâtiments ayant le même prix, mais le
+--  « grammes par poule » de chaque vague en était faussé, et c'est
+--  précisément l'indicateur qui sert à repérer une vague qui mange mal.
 --
---  Quatre de ces journées n'existaient pas en base, ou valaient zéro : le
---  2, le 17 et le 28 août pour V2. L'upsert les crée ou les corrige comme
---  les autres.
+--  Sources : feuilles « Provende TMF V1 et V2 » (colonnes G et I) et celle
+--  de V3 (colonne « Poids/kilos »), 1er au 31 août 2026. La transcription de
+--  V1/V2 a été contrôlée par la somme en sacs — 391,73, identique au total
+--  que la feuille calcule elle-même ; celle de V3 par comparaison jour à
+--  jour avec la base, qui ne laissait que deux écarts.
 --
---  La mortalité n'est pas touchée : seul le poids de provende et son prix
---  sont réécrits. Le prix d'août est 2 738 Ar/kg (0210AX), celui d'avant le
---  1er septembre — voir docs/22-prix-provende-septembre.sql.
+--  LE 14 AOÛT EST VOLONTAIREMENT ABSENT pour V1 et V2 : la feuille se
+--  contredit sur cette ligne, G + I donnent 611,5 kg quand la colonne
+--  « Aliment/Kilos » affiche 623, valeur reprise dans la base. À trancher
+--  avec le chef de ferme avant d'y toucher.
 --
---  Rejouable.
+--  La mortalité n'est pas modifiée. Prix d'août : 2 738 Ar/kg pour V1 et V2
+--  (0210AX), 2 890 pour V3 (PN020F, en transition vers PN030F à partir du
+--  28 août). Rejouable.
 -- =====================================================================
 
 insert into saisies_ferme (date, lot_id, provende_kg, prix_provende_kg)
@@ -40,7 +42,6 @@ values
   ('2026-08-11', 'V1', 312, 2738),
   ('2026-08-12', 'V1', 340, 2738),
   ('2026-08-13', 'V1', 340, 2738),
-  ('2026-08-14', 'V1', 311.5, 2738),
   ('2026-08-15', 'V1', 315, 2738),
   ('2026-08-16', 'V1', 311, 2738),
   ('2026-08-17', 'V1', 321, 2738),
@@ -71,7 +72,6 @@ values
   ('2026-08-11', 'V2', 300, 2738),
   ('2026-08-12', 'V2', 310, 2738),
   ('2026-08-13', 'V2', 310, 2738),
-  ('2026-08-14', 'V2', 300, 2738),
   ('2026-08-15', 'V2', 312, 2738),
   ('2026-08-16', 'V2', 307, 2738),
   ('2026-08-17', 'V2', 311, 2738),
@@ -88,14 +88,46 @@ values
   ('2026-08-28', 'V2', 300, 2738),
   ('2026-08-29', 'V2', 300, 2738),
   ('2026-08-30', 'V2', 300, 2738),
-  ('2026-08-31', 'V2', 300, 2738)
+  ('2026-08-31', 'V2', 300, 2738),
+  ('2026-08-01', 'V3', 167, 2890),
+  ('2026-08-02', 'V3', 179, 2890),
+  ('2026-08-03', 'V3', 152, 2890),
+  ('2026-08-04', 'V3', 159, 2890),
+  ('2026-08-05', 'V3', 150, 2890),
+  ('2026-08-06', 'V3', 150, 2890),
+  ('2026-08-07', 'V3', 160, 2890),
+  ('2026-08-08', 'V3', 150, 2890),
+  ('2026-08-09', 'V3', 160, 2890),
+  ('2026-08-10', 'V3', 150, 2890),
+  ('2026-08-11', 'V3', 179, 2890),
+  ('2026-08-12', 'V3', 161, 2890),
+  ('2026-08-13', 'V3', 175, 2890),
+  ('2026-08-14', 'V3', 175, 2890),
+  ('2026-08-15', 'V3', 175, 2890),
+  ('2026-08-16', 'V3', 175, 2890),
+  ('2026-08-17', 'V3', 175, 2890),
+  ('2026-08-18', 'V3', 176, 2890),
+  ('2026-08-19', 'V3', 179, 2890),
+  ('2026-08-20', 'V3', 202, 2890),
+  ('2026-08-21', 'V3', 202, 2890),
+  ('2026-08-22', 'V3', 202, 2890),
+  ('2026-08-23', 'V3', 202, 2890),
+  ('2026-08-24', 'V3', 202, 2890),
+  ('2026-08-25', 'V3', 202, 2890),
+  ('2026-08-26', 'V3', 191, 2890),
+  ('2026-08-27', 'V3', 212, 2890),
+  ('2026-08-28', 'V3', 212, 2890),
+  ('2026-08-29', 'V3', 212, 2890),
+  ('2026-08-30', 'V3', 212, 2890),
+  ('2026-08-31', 'V3', 212, 2890)
 on conflict (date, lot_id) do update
   set provende_kg      = excluded.provende_kg,
       prix_provende_kg = excluded.prix_provende_kg;
 
--- Contrôle : 10 054,5 kg pour V1, 9 532 kg pour V2, 19 586,5 au total.
+-- Contrôle : V1 9743 kg sur 30 jours, V2 9232 sur 30,
+-- V3 5610 sur 31. Le 14 août reste tel qu'il était pour V1 et V2.
 select lot_id, sum(provende_kg) as kilos, count(*) as jours
 from   saisies_ferme
-where  date between '2026-08-01' and '2026-08-31' and lot_id in ('V1', 'V2')
+where  date between '2026-08-01' and '2026-08-31'
 group  by lot_id
 order  by lot_id;
