@@ -457,10 +457,19 @@
 .tf-facture-total td:nth-child(4) { font-weight:700; }
 .tf-facture-total td:last-child { font-weight:700; }
 
+/* Dates de ponte et de péremption — Mada-Rest est le seul client à les
+   exiger, et elles se lisent sous ses coordonnées. */
+.tf-facture-oeufs { margin:12px 0 0; }
+/* Le modèle simple met le montant en gras dans sa ligne unique : il n'a pas
+   de ligne de total pour le porter. */
+.tf-facture-gras { font-weight:700; }
+.tf-facture-rib { margin-top:10px; font-family:Georgia,'Times New Roman',serif; }
+
 .tf-facture-bas { padding:16px 26px 0; }
 .tf-facture-bas p { margin:0 0 10px; font-family:Georgia,'Times New Roman',serif; }
 .tf-facture-signature { text-align:center; margin-top:34px; }
-.tf-facture-paraphe { display:block; height:70px; margin:6px auto 0; }
+/* Fenêtre de recadrage : l'image déborde, seule la bande utile se voit. */
+.tf-facture-paraphe { display:block; height:70px; margin:10px auto 0; overflow:hidden; }
 .tf-facture-merci { margin-top:14px; font-family:Georgia,'Times New Roman',serif; }
 
 /* À l'impression, seule la facture existe. Le reste de l'application — en-tête

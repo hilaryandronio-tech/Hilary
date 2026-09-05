@@ -101,3 +101,72 @@ select c.nom, t.calibre, t.prix, t.prix_facture
 from   tarifs_clients t
 join   clients c on c.id = t.client_id
 where  c.nom = 'Mercy Ships';
+
+
+-- =====================================================================
+--  Deux modèles de facture, et les mentions propres à chaque client
+--
+--  Relevé sur quatre factures de plus : La Terrasse (31/08), Mada-Rest
+--  (27/08), La braise Coté cour (19/08) et Mr Mamy (22/08).
+--
+--  Elles ne suivent pas le modèle de Leader Price et Mercy Ships : leur
+--  tableau n'a que quatre colonnes — Catégorie, Quantité, Prix unitaire,
+--  Montant — sans « Code M » ni ligne de total. D'où `modele`.
+--
+--  Mada-Rest porte en plus une date de ponte, une date de péremption à
+--  vingt et un jours, le montant en toutes lettres et le RIB en pied de
+--  page. La Terrasse n'affiche aucune condition de paiement.
+--
+--  `nom_facture` : le nom imprimé diffère parfois de celui de la base —
+--  « Mada-Rest » pour MadaRest, « La braise Coté cour » pour La braise.
+-- =====================================================================
+
+alter table clients
+  add column if not exists nom_facture   text,
+  add column if not exists modele        text not null default 'simple'
+    check (modele in ('simple', 'complet')),
+  add column if not exists dates_oeufs   boolean not null default false,
+  add column if not exists montant_lettres boolean not null default false,
+  add column if not exists rib_pied      boolean not null default false,
+  add column if not exists afficher_conditions boolean not null default true;
+
+update clients set modele = 'complet' where nom in ('Leader Price', 'Mercy Ships');
+
+update clients set
+  adresse = E'38bis boulevard joffre,\nToamasina 501, Madagascar',
+  telephone_fac = '+261 34 95 390 33',
+  conditionnement = 1, afficher_conditions = false
+where nom = 'La Terrasse';
+
+update clients set
+  nom_facture = 'Mada-Rest',
+  adresse = E'Lot 722 P/lle 13/36\nToamasina 501, Madagascar',
+  conditionnement = 1, delai_paiement_jours = 5,
+  dates_oeufs = true, montant_lettres = true, rib_pied = true
+where nom = 'MadaRest';
+
+update clients set
+  nom_facture = 'La braise Coté cour',
+  adresse = E'69 boulevard joffre,\nToamasina 501, Madagascar',
+  telephone_fac = '+261 34 12 456 13',
+  conditionnement = 1, delai_paiement_jours = 30
+where nom = 'La braise';
+
+update clients set
+  adresse = 'Fenerive-Est',
+  telephone_fac = '+261 38 06 302 18',
+  conditionnement = 1, delai_paiement_jours = 30
+where nom = 'Mr Mamy';
+
+-- « Côté cour » avait été créé comme client distinct le 2026-09-05 ; sa
+-- facture du 19 août montre qu'il s'agit du même établissement que
+-- « La braise ». On le désactive plutôt que de le supprimer : une vente a
+-- pu lui être rattachée entre-temps, et la supprimer l'emporterait.
+update clients set actif = false where nom = 'Côté cour';
+
+-- Contrôle : à vérifier avant de désactiver Côté cour — s'il a des ventes,
+-- il faut les basculer sur La braise.
+select c.nom, count(v.id) as ventes
+from   clients c left join ventes v on v.client_id = c.id
+where  c.nom in ('Côté cour', 'La braise')
+group  by c.nom;

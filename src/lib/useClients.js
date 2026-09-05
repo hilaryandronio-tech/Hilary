@@ -22,7 +22,7 @@ export function useClients() {
       const { data } = await lectureCachee("clients", () =>
         supabase
           .from("clients")
-          .select("id, nom, adresse, nif, stat, refs_legales, telephone_fac, langue, coordonnees_paiement, conditionnement, delai_paiement_jours, tarifs_clients(calibre, prix, prix_facture)")
+          .select("id, nom, nom_facture, adresse, nif, stat, refs_legales, telephone_fac, langue, modele, coordonnees_paiement, dates_oeufs, montant_lettres, rib_pied, afficher_conditions, conditionnement, delai_paiement_jours, tarifs_clients(calibre, prix, prix_facture)")
           .eq("actif", true)
       );
       if (!vivant) return;

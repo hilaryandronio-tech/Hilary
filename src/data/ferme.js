@@ -31,18 +31,31 @@ export const PAIEMENT = {
   titulaire: "Hanitriniaina Fanantenana",
 };
 
-// La signature manuscrite du gérant figure sur les factures actuelles. Déposer
-// l'image dans public/ et donner son chemin ici pour qu'elle s'imprime ;
-// laissé vide, la facture réserve la place pour signer à la main.
-export const SIGNATURE = "";
+// La signature manuscrite du gérant. Le fichier déposé mesure 2544 × 432 mais
+// l'encre n'en occupe qu'une bande étroite : mesuré au pixel, tout tient entre
+// x 880 et 1680, le reste étant du vide et une poussière isolée à gauche. Sans
+// ce cadrage, la signature affichée à hauteur de ligne serait minuscule.
+//
+// Le nom du fichier est volontairement peu devinable : tout ce qui est dans
+// public/ est accessible à qui connaît l'adresse, et une signature manuscrite
+// se recopie.
+//
+// Mettre `fichier` à "" rend à la facture une place vide, à signer à la main.
+export const SIGNATURE = {
+  fichier: "/paraphe-tf-7c31a9.png",
+  image: [2544, 432],                       // dimensions réelles du fichier
+  cadre: { x: 860, y: 110, l: 840, h: 185 }, // la zone à montrer
+  largeurRendue: 240,                        // en pixels, sur la facture
+};
 
 export const MOTS = {
   fr: {
     client: "Nom du client", adresse: "Adresse", tel: "Tél",
     facture: "Facture N°", commande: "N° Commande", date: "Date",
-    designation: "Désignation", code: "Code M", quantite: "Quantité",
+    designation: "Désignation", categorie: "Catégorie", code: "Code M", quantite: "Quantité",
+    arrete: "Arrêté à la somme de :",
     prixUnit: "Prix unitaire (MGA)", montant: "Montant (MGA)", total: "Total",
-    conditions: (j) => `Condition de paiement: ${j} jours à date de facture`,
+    conditions: (j) => `Condition de paiement: ${String(j).padStart(2, "0")} jours à date de facture`,
     comptant: "Condition de paiement: à réception",
     banque: "Numéro de compte bancaire :", mvola: "Mvola :", titulaire: "Nom :",
     gerant: "Gérant", merci: "Merci pour votre confiance.",
@@ -51,7 +64,8 @@ export const MOTS = {
   en: {
     client: "Customer Name", adresse: "Adress", tel: "Tel",
     facture: "Invoice No.", commande: "Order No.", date: "Date",
-    designation: "Description", code: "Code M", quantite: "Quantity",
+    designation: "Description", categorie: "Category", code: "Code M", quantite: "Quantity",
+    arrete: "This invoice is closed in the sum of :",
     prixUnit: "Unite Price (MGA)", montant: "Amount (MGA)", total: "Total",
     conditions: (j) => `Payment terms: ${j} days from invoice date`,
     comptant: "Payment terms: on delivery",
