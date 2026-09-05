@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { fmt } from "./format";
 import { FERME, ADRESSE, PAIEMENT, SIGNATURE, MOTS } from "../data/ferme";
 import { sommeArrettee, sumInWords } from "../lib/enLettres";
@@ -55,7 +56,25 @@ const dateFrancaise = (iso, avecAnnee = true) => {
   return `${d.getDate()} ${mois}${avecAnnee ? ` ${d.getFullYear()}` : ""}`;
 };
 
+// Poppins et Source Serif ne servent qu'ici. On les charge à l'ouverture
+// d'une facture plutôt qu'au démarrage : l'équipe saisit sur des téléphones
+// et une connexion de ferme, deux familles de plus au chargement seraient
+// payées par tout le monde pour un écran que trois personnes ouvrent.
+const POLICES = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Source+Serif+4:opsz,wght@8..60,400&display=swap";
+
+function usePolicesFacture() {
+  useEffect(() => {
+    if (document.getElementById("polices-facture")) return;
+    const lien = document.createElement("link");
+    lien.id = "polices-facture";
+    lien.rel = "stylesheet";
+    lien.href = POLICES;
+    document.head.append(lien);
+  }, []);
+}
+
 export default function Facture({ vente, client, commande, periode, onFermer }) {
+  usePolicesFacture();
   const langue = client?.langue === "en" ? "en" : "fr";
   const m = MOTS[langue];
   const paquet = client?.conditionnement > 0 ? client.conditionnement : 30;
@@ -119,13 +138,29 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   // à en tirer, et `vente` y est vide.
   const ponte = periode ? null : jourPlus(vente.date, -1);
 
+  // Le navigateur nomme le PDF d'après le titre de la page. Sans ça, chaque
+  // facture enregistrée s'appelait « Tama Ferme — Gestion.pdf » et il fallait
+  // les renommer une par une avant de les envoyer.
+  const nomFichier = periode
+    ? `Facture ${nomImprime} du ${periode.du} au ${periode.au}`
+    : `${numeroFacture(vente.created_at)} ${nomImprime}`;
+  useEffect(() => {
+    const avant = document.title;
+    document.title = nomFichier;
+    return () => { document.title = avant; };
+  }, [nomFichier]);
+
   return (
     <div className="tf-facture-fond" onClick={onFermer}>
       <div className="tf-facture-cadre" onClick={(e) => e.stopPropagation()}>
         <div className="tf-facture-barre">
-          <button className="tf-btn" onClick={() => window.print()}>Imprimer</button>
+          <button className="tf-btn" onClick={() => window.print()}>Télécharger en PDF</button>
           <button className="tf-btn tf-btn-ghost" onClick={onFermer}>Fermer</button>
         </div>
+        <p className="tf-facture-aide">
+          Dans la fenêtre qui s'ouvre, choisis <b>« Enregistrer au format PDF »</b> comme
+          destination. Le fichier s'appellera <b>{nomFichier}.pdf</b> — prêt à envoyer.
+        </p>
 
         <article className="tf-facture">
           <header className="tf-facture-tete">
@@ -238,7 +273,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
 
           <footer className="tf-facture-signature">
             <div>{m.gerant}</div>
-            <div><b>{FERME.gerant.nom}</b></div>
+            <div><b>{FERME.gerant.nom}</b> {FERME.gerant.suite}</div>
             <div>Tél: {FERME.gerant.telephone}</div>
             <Paraphe />
             <div className="tf-facture-merci">{m.merci}</div>

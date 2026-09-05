@@ -11,7 +11,8 @@ export const FERME = {
   emails: ["contact@tamaferme.com", "tama.fermes@gmail.com"],
   nif: "4019 353 097",
   stat: "01462 31 20250 011458",
-  gerant: { nom: "HILARY JAHARISON Andronio", telephone: "+261 34 07 239 20" },
+  // Le nom en capitales est en gras sur les factures, le prénom ne l'est pas.
+  gerant: { nom: "HILARY JAHARISON", suite: "Andronio", telephone: "+261 34 07 239 20" },
   // Même référence sur les deux factures : c'est un code de la ferme, pas
   // du client.
   codeArticle: "67218",
