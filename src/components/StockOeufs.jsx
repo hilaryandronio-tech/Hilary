@@ -26,11 +26,12 @@ export default function StockOeufs({ avecComptage = false }) {
           supabase.from("v_stock_oeufs").select("*").order("ordre")),
         lectureCachee("v_stock_reserve", () =>
           supabase.from("v_stock_oeufs_reserve").select("*").maybeSingle()),
-        // Le mouvement des trente et un derniers jours : un mois de recul,
-        // assez pour situer aujourd'hui sans faire défiler indéfiniment.
+        // Tout l'historique depuis le point de référence, pas un mois : les
+        // premiers jours sont ceux qui expliquent le solde, et les couper
+        // revenait à cacher l'essentiel. La liste défile dans son cadre.
         lectureCachee("v_stock_oeufs_jour", () =>
           supabase.from("v_stock_oeufs_jour").select("*")
-            .order("date", { ascending: false }).limit(31)),
+            .order("date", { ascending: false }).limit(180)),
       ]);
       if (data) setLignes(data);
       if (r) setReserve(r);
@@ -75,7 +76,7 @@ export default function StockOeufs({ avecComptage = false }) {
       </div>
 
       {jours.length > 0 && (
-        <div className="tf-releve-cadre">
+        <div className="tf-releve-cadre" data-long="1">
           <table className="tf-releve">
             <thead>
               <tr><th>Jour</th><th>Collectés</th><th>Vendus</th><th>Reste</th></tr>
