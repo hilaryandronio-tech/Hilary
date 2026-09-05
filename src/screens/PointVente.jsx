@@ -4,6 +4,7 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveVentes from "../components/ReleveVentes";
+import StockOeufs from "../components/StockOeufs";
 import ChoixClient from "../components/ChoixClient";
 import { fmt, today, dLabel } from "../components/format";
 import { CALIBRES, POIDS, PRIX_BASE, PRIX_CASSE, CLIENTS_FALLBACK, CATEGORIES_CHARGES_VENTE } from "../data/constants";
@@ -227,6 +228,7 @@ export default function PointVente() {
         <div className="tf-deux-colonnes">
         <div className="tf-colonne-releve">
         <ReleveVentes date={date} />
+        <StockOeufs />
         </div>
         <div className="tf-colonne-saisie">
 

@@ -4,6 +4,7 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
+import StockOeufs from "../components/StockOeufs";
 import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES, POIDS, PRIX_CASSE } from "../data/constants";
 import { enqueue, idStable, operationsEnAttente } from "../lib/offlineQueue";
@@ -215,6 +216,7 @@ export default function Magasiniere() {
         <div className="tf-deux-colonnes">
         <div className="tf-colonne-releve">
         <ReleveCollecte date={date} lots={lots} />
+        <StockOeufs />
         </div>
         <div className="tf-colonne-saisie">
 
