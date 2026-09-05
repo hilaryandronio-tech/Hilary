@@ -259,7 +259,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
           </table>
 
           <div className="tf-facture-bas">
-            {client?.coordonnees_paiement && (
+            {!periode && client?.coordonnees_paiement && (
               <p className="tf-facture-multi">
                 {m.mvola} {PAIEMENT.mvola}{"\n"}{m.titulaire} {PAIEMENT.titulaire}{"\n"}
                 {m.banque}{"\n"}{PAIEMENT.banque}
