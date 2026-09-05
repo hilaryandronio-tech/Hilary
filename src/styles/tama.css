@@ -479,16 +479,35 @@
 .tf-facture-paraphe { display:block; height:70px; margin:10px auto 0; overflow:hidden; }
 .tf-facture-merci { margin-top:14px; font-family:Georgia,'Times New Roman',serif; }
 
-/* À l'impression, seule la facture existe. Le reste de l'application — en-tête
-   collant, barre de boutons, fond sombre — n'a rien à faire sur le papier. */
+/* À l'impression, seule la facture existe.
+
+   `display:none` et non `visibility:hidden` : un élément invisible occupe
+   toujours sa place, et l'application entière poussait la facture sur une
+   deuxième page vide.
+
+   Marge de page nulle : c'est ce qui retire les en-têtes que le navigateur
+   ajoute — date, titre, adresse du site, numéro de page. Le blanc autour du
+   texte vient donc des marges intérieures de la facture, pas de la page. */
 @media print {
-  body * { visibility:hidden; }
-  .tf-facture, .tf-facture * { visibility:visible; }
-  .tf-facture-fond { position:static; padding:0; background:none; overflow:visible; }
-  .tf-facture-barre { display:none; }
-  .tf-facture { position:absolute; left:0; top:0; width:100%; }
+  .tf-head, .tf-body, .tf-cta, .tf-flash, .tf-pad, .tf-facture-barre { display:none !important; }
+  .tf { padding:0; background:#fff; min-height:0; }
+  .tf-facture-fond { position:static; inset:auto; padding:0; background:none; overflow:visible; }
+  .tf-facture-cadre { max-width:none; margin:0; }
+  .tf-facture { padding-bottom:10mm; }
+  /* Le bandeau touche les bords du papier, comme sur les factures envoyées :
+     sans ça la marge par défaut du navigateur laisse un liseré blanc. */
+  body { margin:0; }
+  /* Les blocs de texte reprennent la marge des modèles — 16 mm, soit un peu
+     moins de 8 % de la largeur — au lieu des 26 px de l'écran, trop serrés
+     sur du A4. */
+  .tf-facture-parties, .tf-facture-bas { padding-left:16mm; padding-right:16mm; }
+  .tf-facture-table { width:calc(100% - 32mm); margin-left:16mm; margin-right:16mm; }
   /* Les aplats de couleur sont l'identité de la facture : sans ça, les
      navigateurs les suppriment à l'impression. */
-  .tf-facture-tete, .tf-facture-table th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  @page { size:A4; margin:12mm; }
+  .tf-facture-tete, .tf-facture-table th {
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  /* Un tableau de semaine ne doit pas se couper au milieu d'une journée. */
+  .tf-facture-table tr { break-inside:avoid; }
+  @page { size:A4; margin:0; }
 }
