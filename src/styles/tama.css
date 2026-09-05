@@ -246,7 +246,6 @@
 .tf-courbe-legende { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px;
                      color:var(--muted); margin-top:4px; }
 
-
 /* Relevé de la collecte : un calibre par ligne, un bâtiment par colonne. Les
    zéros s'affichent en clair — c'est un calibre oublié qu'on cherche à
    repérer, et un tiret ne se compte pas. Le cadre défile horizontalement le
@@ -313,6 +312,15 @@
               color:var(--card); text-align:center; text-transform:uppercase; letter-spacing:0.02em; }
 .tf-login-s { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.16em;
               text-transform:uppercase; color:#B9A99D; text-align:center; margin:5px 0 26px; }
+/* Version de l'application. Discrète mais lisible : c'est la première chose
+   qu'on fait dire au téléphone quand deux appareils ne se comportent pas
+   pareil. Sur l'écran de connexion, fond sombre ; dans l'en-tête, une pastille
+   inerte en bout de rangée d'onglets. */
+.tf-login-v { text-align:center; margin:22px 0 0; }
+.tf-version { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.06em;
+              color:#B9A99D; }
+.tf-role-version { border-color:transparent; padding-left:4px; cursor:default; }
+
 .tf-login-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em;
                 text-transform:uppercase; color:#B9A99D; margin-bottom:8px; }
 .tf-who { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:22px; }
@@ -334,3 +342,19 @@
 .tf-login-err { text-align:center; font-size:12px; color:var(--yolk); margin-bottom:14px; }
 
 @media (prefers-reduced-motion:reduce){ .tf-pad-sheet{animation:none} }
+
+
+/* Sur ordinateur, la colonne de 640 px tient mais serre les tableaux du
+   Journal et les courbes. On élargit au-delà de 1024 px seulement : aucun
+   téléphone n'atteint cette largeur, l'écran que l'équipe connaît ne bouge
+   pas d'un pixel. */
+@media (min-width:1024px) {
+  .tf-body { max-width:940px; padding:24px 24px 0; }
+  .tf-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  /* Le chiffre vedette occupe toute la rangée, sinon il laisse une case
+     orpheline à côté de lui. */
+  .tf-kpi[data-hero="1"] { grid-column:span 3; }
+  /* Les neuf calibres sur une seule rangée : à la souris, on saisit une fiche
+     de ponte sans faire défiler. */
+  .tf-grid4 { grid-template-columns:repeat(5,minmax(0,1fr)); }
+}

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { dLabel, today } from "./format";
 import EtatSync from "./EtatSync";
+import Version from "./Version";
 import { useAuth } from "../context/AuthContext";
 
 // Chaque rôle arrive directement sur son écran principal après connexion
@@ -58,6 +59,10 @@ export default function Header() {
           </NavLink>
         ))}
         <button className="tf-role" onClick={signOut}>Déconnexion</button>
+        {/* En bout de rangée, hors du chemin : l'équipe reste connectée des
+            jours entiers, la version doit rester atteignable sans se
+            déconnecter. */}
+        <span className="tf-role tf-role-version"><Version /></span>
       </div>
     </header>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { TEAM } from "../data/team";
+import Version from "../components/Version";
 
 const CODE_LEN = 6; // longueur minimale par défaut de Supabase Auth — voir src/data/team.js
 
@@ -71,6 +72,9 @@ export default function Login() {
             </button>
           </div>
         </div>
+        {/* Version complète ici : c'est l'écran qu'on demande de regarder quand
+            on cherche pourquoi un téléphone ne se comporte pas comme un autre. */}
+        <p className="tf-login-v"><Version complet /></p>
       </div>
     </div>
   );
