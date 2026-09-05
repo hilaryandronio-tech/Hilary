@@ -348,6 +348,20 @@
                  font-family:'IBM Plex Sans',sans-serif; }
 .tf-who button[data-on="1"] { background:var(--yolk); border-color:var(--yolk); color:var(--ink); font-weight:600; }
 .tf-who small { display:block; font-family:'IBM Plex Mono',monospace; font-size:9px; opacity:.75; margin-top:2px; }
+/* Case du code sur ordinateur, à la place des douze touches. Chiffres espacés
+   et centrés : on relit un code masqué au nombre de points, pas au texte. */
+.tf-login-code { display:block; width:100%; box-sizing:border-box; margin-bottom:16px;
+                 border:1px solid #5A463C; border-radius:2px; background:transparent;
+                 color:var(--card); padding:14px 12px; text-align:center;
+                 font-family:'IBM Plex Mono',monospace; font-size:22px; letter-spacing:0.5em;
+                 text-indent:0.5em; }
+.tf-login-code:focus-visible { outline:2px solid var(--yolk); outline-offset:1px; }
+/* Le bouton « Entrer » se retrouve seul. Il faut reprendre la grille et la
+   largeur maximale : celle du pavé (300 px) le laissait plus étroit que la
+   case au-dessus, ce qui se voyait. Sélecteur plus précis que
+   `.tf-login .tf-keys`, qui vient plus bas. */
+.tf-login .tf-keys[data-seul="1"] { grid-template-columns:1fr; max-width:none; }
+
 .tf-pin { display:flex; gap:9px; justify-content:center; margin-bottom:22px; }
 .tf-pin i { width:15px; height:15px; border-radius:50%; border:1.5px solid #5A463C; }
 .tf-pin i[data-on="1"] { background:var(--yolk); border-color:var(--yolk); }

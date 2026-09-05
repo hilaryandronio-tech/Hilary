@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { TEAM } from "../data/team";
 import Version from "../components/Version";
+import { useSurOrdinateur } from "../lib/useSurOrdinateur";
 
 const CODE_LEN = 6; // longueur minimale par défaut de Supabase Auth — voir src/data/team.js
 
@@ -12,6 +13,7 @@ export default function Login() {
   const [envoi, setEnvoi] = useState(false);
 
   const entree = TEAM.find((t) => t.key === qui);
+  const surOrdinateur = useSurOrdinateur();
 
   // Le pavé à l'écran a été dessiné pour un pouce, dehors. Sur ordinateur il
   // obligeait à cliquer six chiffres à la souris alors qu'un clavier est là.
@@ -19,6 +21,9 @@ export default function Login() {
   // de capturer un `pin` périmé au moment de l'envoi.
   const connecterRef = useRef(null);
   useEffect(() => {
+    // Sur ordinateur, la case de saisie reçoit les touches elle-même : garder
+    // cet écouteur en plus compterait chaque chiffre deux fois.
+    if (surOrdinateur) return;
     const auClavier = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey || envoi) return;
       if (e.key >= "0" && e.key <= "9") {
@@ -35,7 +40,7 @@ export default function Login() {
     };
     window.addEventListener("keydown", auClavier);
     return () => window.removeEventListener("keydown", auClavier);
-  }, [envoi]);
+  }, [envoi, surOrdinateur]);
 
   const connecter = async () => {
     if (pin.length < CODE_LEN || envoi) return;
@@ -77,26 +82,58 @@ export default function Login() {
             ))}
           </div>
 
-          <div className="tf-login-lbl">Code à {CODE_LEN} chiffres · ou tape-le au clavier</div>
-          <div className="tf-pin">
-            {[...Array(CODE_LEN).keys()].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
-          </div>
+          <div className="tf-login-lbl">Code à {CODE_LEN} chiffres</div>
 
-          {erreur && <p className="tf-login-err">{erreur}</p>}
+          {surOrdinateur ? (
+            <>
+              {/* Une case masquée plutôt que douze touches à viser. Masquée
+                  parce qu'un écran d'ordinateur se regarde par-dessus l'épaule
+                  bien plus facilement qu'un téléphone tenu en main. */}
+              <input
+                className="tf-login-code"
+                type="password"
+                inputMode="numeric"
+                autoComplete="current-password"
+                autoFocus
+                maxLength={CODE_LEN}
+                value={pin}
+                aria-label={`Code à ${CODE_LEN} chiffres`}
+                onChange={(e) => {
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, CODE_LEN));
+                  setErreur("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && connecter()}
+              />
+              {erreur && <p className="tf-login-err">{erreur}</p>}
+              <div className="tf-keys" data-seul="1">
+                <button className="tf-key" data-ok="1" disabled={pin.length < CODE_LEN || envoi} onClick={connecter}>
+                  {envoi ? "…" : "Entrer"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="tf-pin">
+                {[...Array(CODE_LEN).keys()].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
+              </div>
 
-          <div className="tf-keys">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "<"].map((k) => (
-              <button key={k} className="tf-key" onClick={() => {
-                if (envoi) return;
-                if (k === "C") return setPin("");
-                if (k === "<") return setPin(pin.slice(0, -1));
-                if (pin.length < CODE_LEN) setPin(pin + k);
-              }}>{k}</button>
-            ))}
-            <button className="tf-key" data-ok="1" disabled={pin.length < CODE_LEN || envoi} onClick={connecter}>
-              {envoi ? "…" : "Entrer"}
-            </button>
-          </div>
+              {erreur && <p className="tf-login-err">{erreur}</p>}
+
+              <div className="tf-keys">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "<"].map((k) => (
+                  <button key={k} className="tf-key" onClick={() => {
+                    if (envoi) return;
+                    if (k === "C") return setPin("");
+                    if (k === "<") return setPin(pin.slice(0, -1));
+                    if (pin.length < CODE_LEN) setPin(pin + k);
+                  }}>{k}</button>
+                ))}
+                <button className="tf-key" data-ok="1" disabled={pin.length < CODE_LEN || envoi} onClick={connecter}>
+                  {envoi ? "…" : "Entrer"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
         {/* Version complète ici : c'est l'écran qu'on demande de regarder quand
             on cherche pourquoi un téléphone ne se comporte pas comme un autre. */}
