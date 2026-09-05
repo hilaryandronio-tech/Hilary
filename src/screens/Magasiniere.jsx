@@ -216,7 +216,7 @@ export default function Magasiniere() {
         <div className="tf-deux-colonnes">
         <div className="tf-colonne-releve">
         <ReleveCollecte date={date} lots={lots} />
-        <StockOeufs />
+        <StockOeufs avecComptage />
         </div>
         <div className="tf-colonne-saisie">
 

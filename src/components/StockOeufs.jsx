@@ -4,6 +4,7 @@ import { POIDS } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { lectureCachee } from "../lib/cacheLecture";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import ComptageStock from "./ComptageStock";
 
 // Les œufs en magasin : ce qui a été ramassé moins ce qui est sorti, calibre
 // par calibre. Les pertes ne s'en retirent pas — elles n'ont jamais rejoint
@@ -11,13 +12,14 @@ import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 
 const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 
-export default function StockOeufs() {
+export default function StockOeufs({ avecComptage = false }) {
+  const [rafraichir, setRafraichir] = useState(0);
   const [lignes, setLignes] = useState([]);
   const [reserve, setReserve] = useState(null);
   const [enFile, setEnFile] = useState({ collecte: 0, vente: 0 });
 
   useEffect(() => {
-    const relire = async () => {
+    const charger = async () => {
       const [{ data }, { data: r }] = await Promise.all([
         lectureCachee("v_stock_oeufs", () =>
           supabase.from("v_stock_oeufs").select("*").order("ordre")),
@@ -38,9 +40,9 @@ export default function StockOeufs() {
         ops.reduce((s, op) => s + [].concat(op.payload).reduce((t, l) => t + (l?.oeufs ?? 0), 0), 0);
       setEnFile({ collecte: somme(pontes), vente: somme(ventes) });
     };
-    relire();
-    return onQueueChange(relire);
-  }, []);
+    charger();
+    return onQueueChange(charger);
+  }, [rafraichir]);
 
   const total = lignes.reduce((s, l) => s + Number(l.disponibles ?? 0), 0)
     + enFile.collecte - enFile.vente;
@@ -51,7 +53,11 @@ export default function StockOeufs() {
     <div className="tf-card">
       <div className="tf-cardhead">
         <span className="tf-cardtitle">Œufs disponibles</span>
-        {depuis && <span className="tf-tag">DEPUIS LE {dLabel(depuis).toUpperCase()}</span>}
+        {depuis && (
+          <span className="tf-tag">
+            {lignes[0]?.compte_pose ? "COMPTÉ LE" : "DEPUIS LE"} {dLabel(depuis).toUpperCase()}
+          </span>
+        )}
       </div>
 
       <div className="tf-live" data-alerte={total < 0 ? 1 : 0}>
@@ -90,10 +96,14 @@ export default function StockOeufs() {
 
       {total < 0 && (
         <p className="tf-note">
-          Le compte est négatif : il est sorti plus d'œufs qu'il n'en est entré. Il manque des
-          fiches de ponte, ou des ventes ont été saisies deux fois.
+          Le compte est négatif : il est sorti plus d'œufs qu'il n'en est entré depuis le début du
+          suivi. C'est normal tant que le magasin n'a pas été compté — il n'était pas vide au
+          départ, et ce qui s'y trouvait déjà n'a jamais été enregistré comme entrée. Compte-le une
+          fois, le solde repartira juste.
         </p>
       )}
+
+      {avecComptage && <ComptageStock onFini={() => setRafraichir((n) => n + 1)} />}
 
       {reserve?.ventes_sans_detail > 0 && (
         <p className="tf-note">
