@@ -54,7 +54,13 @@ create policy corriger_comptage on stock_oeufs_compte for update
 --  la vue se comporte exactement comme avant, et rien ne casse.
 -- =====================================================================
 
-create or replace view v_stock_oeufs as
+-- La vue gagne une colonne, `compte`, en troisième position :
+-- `create or replace` refuse de renommer les colonnes d'une vue existante.
+-- On la supprime d'abord — une vue ne contient pas de données, elle
+-- recalcule à chaque lecture, il n'y a rien à perdre.
+drop view if exists v_stock_oeufs;
+
+create view v_stock_oeufs as
 with reference as (
   select coalesce((select max(date) from stock_oeufs_compte),
                   (select min(date) - 1 from pontes)) as depuis
