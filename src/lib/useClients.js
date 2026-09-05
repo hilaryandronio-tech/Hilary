@@ -22,7 +22,7 @@ export function useClients() {
       const { data } = await lectureCachee("clients", () =>
         supabase
           .from("clients")
-          .select("id, nom, adresse, nif, stat, refs_legales, telephone_fac, langue, coordonnees_paiement, conditionnement, delai_paiement_jours, tarifs_clients(calibre, prix)")
+          .select("id, nom, adresse, nif, stat, refs_legales, telephone_fac, langue, coordonnees_paiement, conditionnement, delai_paiement_jours, tarifs_clients(calibre, prix, prix_facture)")
           .eq("actif", true)
       );
       if (!vivant) return;
@@ -31,6 +31,12 @@ export function useClients() {
           data.map((c) => ({
             ...c,
             tarifs: Object.fromEntries((c.tarifs_clients ?? []).map((t) => [t.calibre, t.prix])),
+            // Ce que le client paie, quand ce n'est pas ce que la ferme
+            // encaisse — la part d'un intermédiaire, chez Mercy Ships.
+            tarifsFacture: Object.fromEntries(
+              (c.tarifs_clients ?? []).filter((t) => t.prix_facture)
+                .map((t) => [t.calibre, t.prix_facture])
+            ),
           }))
         );
       }

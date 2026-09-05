@@ -32,6 +32,13 @@ export default function Facture({ vente, client, commande, onFermer }) {
   const lignes = vente.lignes ?? [];
   const plusieurs = lignes.length > 1;
 
+  // Le prix facturé n'est pas toujours celui qu'encaisse la ferme : Mercy
+  // Ships paie 1 000 Ar l'œuf, dont 200 vont à l'intermédiaire qui a trouvé le
+  // contrat. La caisse enregistre les 800 qui reviennent à la ferme, la
+  // facture affiche les 1 000 que le client paie. Sans tarif de facturation,
+  // c'est le prix figé à la vente qui s'imprime — le cas de tous les autres.
+  const prixFacture = (l) => client?.tarifsFacture?.[l.calibre] ?? l.prix_unit;
+
   const rendues = lignes.map((l) => {
     // L'application compte en œufs ; la facture compte en paquets. Une
     // quantité qui ne tombe pas juste est affichée telle quelle plutôt
@@ -45,8 +52,8 @@ export default function Facture({ vente, client, commande, onFermer }) {
       designation: (paquet > 1 ? m.paquet(paquet) : m.oeufs) +
         (plusieurs ? ` — ${l.calibre === "CASSE" ? "cassés" : l.calibre}` : ""),
       quantite: Number.isInteger(quantite) ? quantite : quantite.toFixed(2).replace(".", ","),
-      prixUnit: l.prix_unit * paquet,
-      montant: l.oeufs * l.prix_unit,
+      prixUnit: prixFacture(l) * paquet,
+      montant: l.oeufs * prixFacture(l),
     };
   });
   const total = rendues.reduce((s, l) => s + l.montant, 0);

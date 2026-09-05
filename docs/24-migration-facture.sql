@@ -70,3 +70,34 @@ select nom, conditionnement, langue, delai_paiement_jours, coordonnees_paiement
 from   clients
 where  nom in ('Leader Price', 'Mercy Ships', 'Calypso', 'La Terrasse')
 order  by nom;
+
+
+-- =====================================================================
+--  Prix facturé, distinct du prix encaissé
+--
+--  Mercy Ships paie 1 000 Ar l'œuf, dont 200 reviennent à l'intermédiaire
+--  qui a trouvé le contrat. La ferme touche 800, et c'est 800 que la caisse
+--  enregistre — la créance de Mercy Ships envers la ferme est bien de 800
+--  par œuf, l'intermédiaire encaissant sa part de son côté. Mais la facture
+--  remise au client doit afficher 1 000.
+--
+--  D'où cette colonne : elle ne sert qu'à l'impression. Laissée vide, la
+--  facture reprend le prix de la vente, ce qui est le cas de tous les autres
+--  clients.
+-- =====================================================================
+
+alter table tarifs_clients
+  add column if not exists prix_facture integer check (prix_facture > 0);
+
+insert into tarifs_clients (client_id, calibre, prix, prix_facture)
+select c.id, 'L1', 800, 1000
+from   clients c
+where  c.nom = 'Mercy Ships'
+on conflict (client_id, calibre) do update
+  set prix = excluded.prix, prix_facture = excluded.prix_facture;
+
+-- Contrôle : Mercy Ships en L1, 800 encaissés, 1 000 facturés.
+select c.nom, t.calibre, t.prix, t.prix_facture
+from   tarifs_clients t
+join   clients c on c.id = t.client_id
+where  c.nom = 'Mercy Ships';
