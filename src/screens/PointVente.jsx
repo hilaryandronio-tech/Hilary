@@ -50,6 +50,9 @@ export default function PointVente() {
   const prixClient = (cl, calibre) => cl?.tarifs?.[calibre] ?? prixBase[calibre];
 
   const val = (k) => draft[k] || 0;
+  // Saisie directe à la souris : même effet que le pavé, sans passer par lui.
+  const poser = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const modifierPrixBase = async (calibre, prix) => {
     setPrixBase((p) => ({ ...p, [calibre]: prix }));
@@ -258,7 +261,8 @@ export default function PointVente() {
                       onOpen={client.id
                         ? () => open(`v_${slug(client.nom)}_${c}`,
                             `${client.nom} — ${c} (${POIDS[c]}) à ${prixClient(client, c)} Ar`, "œufs")
-                        : undefined} />
+                        : undefined}
+                      onChange={client.id ? (v) => poser(`v_${slug(client.nom)}_${c}`, v) : undefined} />
                   );
                 })}
               </div>
@@ -290,7 +294,8 @@ export default function PointVente() {
               <NumField key={c} label={libelle(c)} sous={POIDS[c]}
                 unit="œufs" value={val("d" + c)}
                 detail={val("d" + c) ? `${fmt(val("d" + c) * prixBase[c])} Ar` : `${prixBase[c]} Ar/œuf`}
-                onOpen={() => open("d" + c, `${libelle(c)} (${POIDS[c]}) — ${prixBase[c]} Ar/œuf`, "œufs")} />
+                onOpen={() => open("d" + c, `${libelle(c)} (${POIDS[c]}) — ${prixBase[c]} Ar/œuf`, "œufs")}
+                onChange={(v) => poser("d" + c, v)} />
             ))}
           </div>
           <div className="tf-live">
@@ -303,8 +308,10 @@ export default function PointVente() {
         <div className="tf-card">
           <div className="tf-cardhead"><span className="tf-cardtitle">Encaissements</span></div>
           <div className="tf-grid2">
-            <NumField label="Recette du jour" unit="Ar" value={val("rec")} onOpen={() => open("rec", "Recette encaissée", "Ar")} />
-            <NumField label="Vendu à crédit" unit="Ar" tone="brick" value={val("cred")} onOpen={() => open("cred", "Vendu à crédit", "Ar")} />
+            <NumField label="Recette du jour" unit="Ar" value={val("rec")} onOpen={() => open("rec", "Recette encaissée", "Ar")}
+                onChange={(v) => poser("rec", v)} />
+            <NumField label="Vendu à crédit" unit="Ar" tone="brick" value={val("cred")} onOpen={() => open("cred", "Vendu à crédit", "Ar")}
+                onChange={(v) => poser("cred", v)} />
           </div>
           <div className="tf-live">
             <span className="tf-live-n">{fmt(val("rec") + val("cred") + totalClients + totalDetail)}</span>
@@ -319,7 +326,8 @@ export default function PointVente() {
           </div>
           <div className="tf-cats">
             {CATEGORIES_CHARGES_VENTE.map((c) => (
-              <NumField key={c} label={c} unit="Ar" value={val("ch_" + c)} onOpen={() => open("ch_" + c, c, "Ar")} />
+              <NumField key={c} label={c} unit="Ar" value={val("ch_" + c)} onOpen={() => open("ch_" + c, c, "Ar")}
+                onChange={(v) => poser("ch_" + c, v)} />
             ))}
           </div>
           <div className="tf-live">

@@ -57,6 +57,9 @@ export default function Commandes() {
   const client = clients.find((c) => c.nom === clientNom) ?? clients[0];
   const prixClient = (cl, cal) => cl?.tarifs?.[cal] ?? prixBase[cal];
   const val = (k) => draft[k] || 0;
+  // Saisie directe à la souris : même effet que le pavé, sans passer par lui.
+  const poser = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
 
   useEffect(() => {
     lectureCachee("calibres", () => supabase.from("calibres").select("code, prix_base"))
@@ -315,7 +318,8 @@ export default function Commandes() {
                     : `${prixClient(client, c)} Ar/œuf`}
                   onOpen={client?.id
                     ? () => setPad({ key: c, label: `${client.nom} — ${libelle(c)}`, unit: "œufs", value: val(c) })
-                    : undefined} />
+                    : undefined}
+                  onChange={client?.id ? (v) => poser(c, v) : undefined} />
               ))}
             </div>
 

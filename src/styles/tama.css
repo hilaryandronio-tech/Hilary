@@ -80,6 +80,21 @@
             padding:9px 11px; text-align:left; width:100%; cursor:pointer;
             font-family:'IBM Plex Sans',sans-serif; display:block; overflow:hidden; }
 .tf-field:focus-visible { outline:2px solid var(--yolk); outline-offset:1px; }
+/* Saisie directe à la souris : la case reste dessinée pareil, seul le nombre
+   devient tapable. Le curseur est un curseur de texte, pas une main — c'est le
+   seul indice qui dise qu'on peut écrire ici. */
+.tf-field[data-saisie="1"] { cursor:text; }
+.tf-field:focus-within { border-color:var(--ink); outline:2px solid var(--yolk); outline-offset:1px; }
+/* Le nombre prend la place, l'unité reste collée derrière lui — sans ça la
+   case à 100 % de large pousse « kg » hors du champ. */
+.tf-field[data-saisie="1"] .tf-value { display:flex; align-items:baseline; }
+.tf-saisie { border:none; background:transparent; padding:0; flex:1; min-width:0;
+             font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:inherit;
+             line-height:inherit; color:var(--ink); font-variant-numeric:tabular-nums; }
+.tf-saisie:focus { outline:none; }
+.tf-saisie::placeholder { color:var(--ink); opacity:1; }
+/* Les flèches d'incrément n'ont pas de sens ici : on saisit des comptages. */
+.tf-saisie::-webkit-outer-spin-button, .tf-saisie::-webkit-inner-spin-button { display:none; }
 .tf-field[data-filled="1"] { background:var(--card); border-color:var(--ink); }
 .tf-label { display:block; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
             color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-bottom:3px; }

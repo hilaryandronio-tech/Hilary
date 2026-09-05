@@ -58,6 +58,9 @@ export default function ChefFerme() {
   }, []);
 
   const val = (k) => draft[k] || 0;
+  // Saisie directe à la souris : même effet que le pavé, sans passer par lui.
+  const poser = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const setPadVal = (v) => {
     // Le reste compté n'est pas une saisie du soir : il ne rejoint pas le
@@ -214,8 +217,10 @@ export default function ChefFerme() {
             <span className="tf-tag">{lot?.en_ponte ? "EN PONTE" : "POULETTES"}</span>
           </div>
           <div className="tf-grid2">
-            <NumField label="Provende" unit="kg" value={val("kg")} onOpen={() => open("kg", "Provende distribuée", "kg")} />
-            <NumField label="Mortalité" unit="têtes" tone="brick" value={val("mort")} onOpen={() => open("mort", "Mortalité du jour", "têtes")} />
+            <NumField label="Provende" unit="kg" value={val("kg")} onOpen={() => open("kg", "Provende distribuée", "kg")}
+                onChange={(v) => poser("kg", v)} />
+            <NumField label="Mortalité" unit="têtes" tone="brick" value={val("mort")} onOpen={() => open("mort", "Mortalité du jour", "têtes")}
+                onChange={(v) => poser("mort", v)} />
           </div>
           <div className="tf-live">
             <span className="tf-live-n">{grammesParPoule ? fmt(grammesParPoule) : "—"}</span>
@@ -231,7 +236,8 @@ export default function ChefFerme() {
           <div className="tf-grid2">
             <NumField label="Sacs reçus" unit="sacs" value={val("sacs")}
               detail={val("sacs") ? `${fmt(val("sacs") * SAC_KG)} kg` : null}
-              onOpen={() => open("sacs", "Sacs de provende reçus", "sacs")} />
+              onOpen={() => open("sacs", "Sacs de provende reçus", "sacs")}
+                onChange={(v) => poser("sacs", v)} />
             {/* Le reste est calculé, donc il dérive : un sac non noté, une
                 distribution oubliée, et l'écart s'installe. Ce champ devient
                 modifiable pour caler l'application sur les sacs réellement
@@ -279,7 +285,8 @@ export default function ChefFerme() {
           </div>
           <div className="tf-cats">
             {CATEGORIES_CHARGES.map((c) => (
-              <NumField key={c} label={c} unit="Ar" value={val("ch_" + c)} onOpen={() => open("ch_" + c, c, "Ar")} />
+              <NumField key={c} label={c} unit="Ar" value={val("ch_" + c)} onOpen={() => open("ch_" + c, c, "Ar")}
+                onChange={(v) => poser("ch_" + c, v)} />
             ))}
           </div>
           <div className="tf-live">

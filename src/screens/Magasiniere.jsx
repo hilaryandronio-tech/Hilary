@@ -90,6 +90,11 @@ export default function Magasiniere() {
   }, [date, lotId]);
 
   const val = (k) => draft[k] || 0;
+  // Saisie directe à la souris : même effet que le pavé, sans passer par lui.
+  const poser = (k, v) => {
+    setDraft((d) => ({ ...d, [k]: v }));
+    setDejaEnregistre(false);
+  };
   const open = (k, label, unit) => setPad({ key: k, label, unit, value: val(k) });
   const setPadVal = (v) => {
     setDraft({ ...draft, [pad.key]: v });
@@ -215,7 +220,8 @@ export default function Magasiniere() {
             {CALIBRES.map((c) => (
               <NumField key={c} label={c} sous={POIDS[c]} unit="alv" value={val("c" + c)}
                 detail={val("c" + c) ? `${fmt(val("c" + c) * ALV)} œufs` : null}
-                onOpen={() => open("c" + c, `${c} · ${POIDS[c]}`, "alv")} />
+                onOpen={() => open("c" + c, `${c} · ${POIDS[c]}`, "alv")}
+                onChange={(v) => poser("c" + c, v)} />
             ))}
           </div>
           <div className="tf-live">
@@ -234,7 +240,8 @@ export default function Magasiniere() {
           <div className="tf-grid4">
             {CALIBRES.map((c) => (
               <NumField key={c} label={c} sous={POIDS[c]} unit="œufs" value={val("d" + c)}
-                onOpen={() => open("d" + c, `${c} · ${POIDS[c]}`, "œufs")} />
+                onOpen={() => open("d" + c, `${c} · ${POIDS[c]}`, "œufs")}
+                onChange={(v) => poser("d" + c, v)} />
             ))}
           </div>
           <p className="tf-note">Pour compter des œufs hors alvéole complète — ramassage partiel, casier entamé.</p>
@@ -251,11 +258,14 @@ export default function Magasiniere() {
           <div className="tf-grid4">
             <NumField label="Cassés" unit="œufs" value={val("casse")}
               detail={val("casse") ? `${fmt(val("casse") * PRIX_CASSE)} Ar` : null}
-              onOpen={() => open("casse", `Cassés vendables — ${PRIX_CASSE} Ar`, "œufs")} />
+              onOpen={() => open("casse", `Cassés vendables — ${PRIX_CASSE} Ar`, "œufs")}
+                onChange={(v) => poser("casse", v)} />
             <NumField label="Sales" unit="œufs" value={val("sale")}
-              onOpen={() => open("sale", "Sales à nettoyer", "œufs")} />
+              onOpen={() => open("sale", "Sales à nettoyer", "œufs")}
+                onChange={(v) => poser("sale", v)} />
             <NumField label="Perdus" unit="œufs" tone="brick" value={val("perdu")}
-              onOpen={() => open("perdu", "Irrécupérables — perdus et fêlés", "œufs")} />
+              onOpen={() => open("perdu", "Irrécupérables — perdus et fêlés", "œufs")}
+                onChange={(v) => poser("perdu", v)} />
           </div>
           <p className="tf-note">
             <strong>Cassés</strong> : récupérables, vendus à part à {PRIX_CASSE} Ar — déjà compris

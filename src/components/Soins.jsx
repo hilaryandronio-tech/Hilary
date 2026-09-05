@@ -45,6 +45,9 @@ export default function Soins({ lotId }) {
   const requete = useRef(0);
 
   const val = (k) => draft[k] || 0;
+  // Saisie directe à la souris : même effet que le pavé, sans passer par lui.
+  const poser = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
   const donne = (k) => !!draft[`d_${k}`];
 
   const chargerServeur = async (jeton) => {
@@ -149,7 +152,8 @@ export default function Soins({ lotId }) {
       <div className="tf-grid2">
         {QUANTIFIES.map((p) => (
           <NumField key={p.code} label={p.nom} unit={p.unite} value={val(p.code)}
-            onOpen={() => setPad({ key: p.code, label: `${p.nom} — ${lotId}`, unit: p.unite, value: val(p.code) })} />
+            onOpen={() => setPad({ key: p.code, label: `${p.nom} — ${lotId}`, unit: p.unite, value: val(p.code) })}
+                onChange={(v) => poser(p.code, v)} />
         ))}
       </div>
 
