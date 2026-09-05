@@ -17,17 +17,24 @@ export default function StockOeufs({ avecComptage = false }) {
   const [lignes, setLignes] = useState([]);
   const [reserve, setReserve] = useState(null);
   const [enFile, setEnFile] = useState({ collecte: 0, vente: 0 });
+  const [jours, setJours] = useState([]);
 
   useEffect(() => {
     const charger = async () => {
-      const [{ data }, { data: r }] = await Promise.all([
+      const [{ data }, { data: r }, { data: j }] = await Promise.all([
         lectureCachee("v_stock_oeufs", () =>
           supabase.from("v_stock_oeufs").select("*").order("ordre")),
         lectureCachee("v_stock_reserve", () =>
           supabase.from("v_stock_oeufs_reserve").select("*").maybeSingle()),
+        // Le mouvement des trente et un derniers jours : un mois de recul,
+        // assez pour situer aujourd'hui sans faire défiler indéfiniment.
+        lectureCachee("v_stock_oeufs_jour", () =>
+          supabase.from("v_stock_oeufs_jour").select("*")
+            .order("date", { ascending: false }).limit(31)),
       ]);
       if (data) setLignes(data);
       if (r) setReserve(r);
+      if (j) setJours(j);
 
       // Ce qui attend encore la synchronisation compte déjà dans le magasin :
       // les œufs sont ramassés ou sortis, que le téléphone ait pu le dire ou
@@ -66,6 +73,28 @@ export default function StockOeufs({ avecComptage = false }) {
           œufs en magasin — soit {fmt(Math.floor(Math.abs(total) / 30))} alvéoles
         </span>
       </div>
+
+      {jours.length > 0 && (
+        <div className="tf-releve-cadre">
+          <table className="tf-releve">
+            <thead>
+              <tr><th>Jour</th><th>Collectés</th><th>Vendus</th><th>Reste</th></tr>
+            </thead>
+            <tbody>
+              {jours.map((j) => (
+                <tr key={j.date}>
+                  <th>{dLabel(j.date)}</th>
+                  <td>{fmt(j.collectes)}</td>
+                  <td>{fmt(j.vendus)}</td>
+                  <td data-alerte={Number(j.disponibles) < 0 ? 1 : 0}>{fmt(j.disponibles)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="tf-eyebrow" style={{ margin: "14px 0 6px" }}>Par calibre</p>
 
       <div className="tf-releve-cadre">
         <table className="tf-releve">
