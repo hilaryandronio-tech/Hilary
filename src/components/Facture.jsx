@@ -162,9 +162,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
           destination. Le fichier s'appellera <b>{nomFichier}.pdf</b> — prêt à envoyer.
         </p>
 
-        <article className="tf-facture">
+        <article className="tf-facture" data-periode={periode ? 1 : 0}>
           <header className="tf-facture-tete">
-            <img src="/icones/icone-marron-192.png" alt="" />
+            <img src="/icones/icone-blanc-512.png" alt="" />
             <span>Tama Ferme</span>
           </header>
 
@@ -237,10 +237,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
                   <td className={complet ? undefined : "tf-facture-gras"}>{fmt(l.montant)}</td>
                 </tr>
               ))}
-              {/* Le modèle simple n'a pas de ligne de total : une livraison
-                  n'y porte qu'une seule catégorie, le montant fait le total.
-                  Dès qu'il y en a plusieurs, il en faut bien un. */}
-              {(periode || complet || rendues.length > 1) && (
+              {/* Toujours une ligne de total, même à une seule ligne : c'est
+                  ce que le lecteur cherche en premier. */}
+              {(
                 <tr className="tf-facture-total">
                   <td colSpan={periode || complet ? 3 : 2} />
                   <td>{m.total}</td>
