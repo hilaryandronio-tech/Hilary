@@ -60,6 +60,8 @@ export const MOTS = {
     banque: "Numéro de compte bancaire :", mvola: "Mvola :", titulaire: "Nom :",
     gerant: "Gérant", merci: "Merci pour votre confiance.",
     oeufs: "Oeufs", paquet: (n) => `Oeufs x${n}`,
+    titrePeriode: (du, au) => `Facture du ${du} au ${au}`,
+    description: "Description :", colDate: "Date", colCommande: "N° Commande",
   },
   en: {
     client: "Customer Name", adresse: "Adress", tel: "Tel",
@@ -72,5 +74,7 @@ export const MOTS = {
     banque: "Bank account number:", mvola: "Mvola:", titulaire: "Name:",
     gerant: "Manager", merci: "We appreciate your trust.",
     oeufs: "Eggs", paquet: (n) => `Eggs x${n}`,
+    titrePeriode: (du, au) => `Invoice from ${du} to ${au}`,
+    description: "Description:", colDate: "Date", colCommande: "Order N°",
   },
 };

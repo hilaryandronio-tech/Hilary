@@ -444,6 +444,13 @@
    la ligne : il faut les respecter, pas les recoller en un pavé. */
 .tf-facture-multi { white-space:pre-line; }
 .tf-facture-num { margin:14px 0 0; }
+/* Facture de période : le titre remplace le numéro, en gras — c'est lui qui
+   identifie le document. */
+.tf-facture-periode { margin:14px 0 0; font-weight:700; font-size:14px; }
+.tf-facture-desc { margin:10px 0 0; }
+/* La colonne des dates est la seule à ne pas être centrée : alignée à gauche,
+   on suit la semaine du regard. */
+.tf-facture-jour { text-align:left !important; white-space:nowrap; }
 .tf-facture-date { margin:10px 0 0; font-size:14px; }
 .tf-facture-date b { color:#1c5bbf; }
 

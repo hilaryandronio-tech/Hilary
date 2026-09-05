@@ -1,6 +1,6 @@
 import { fmt } from "./format";
 import { FERME, ADRESSE, PAIEMENT, SIGNATURE, MOTS } from "../data/ferme";
-import { sommeArrettee } from "../lib/enLettres";
+import { sommeArrettee, sumInWords } from "../lib/enLettres";
 
 // La facture d'une livraison, reproduite d'après les modèles existants
 // (Leader Price du 2026-09-03 en français, Mercy Ships du 2026-09-05 en
@@ -44,11 +44,22 @@ function Paraphe() {
   );
 }
 
-export default function Facture({ vente, client, commande, onFermer }) {
+const dateAnglaise = (iso, avecAnnee = true) => {
+  const d = new Date(iso + "T12:00:00");
+  const mois = d.toLocaleDateString("en-US", { month: "long" });
+  return `${mois} ${d.getDate()}${avecAnnee ? `, ${d.getFullYear()}` : ""}`;
+};
+const dateFrancaise = (iso, avecAnnee = true) => {
+  const d = new Date(iso + "T12:00:00");
+  const mois = d.toLocaleDateString("fr-FR", { month: "long" });
+  return `${d.getDate()} ${mois}${avecAnnee ? ` ${d.getFullYear()}` : ""}`;
+};
+
+export default function Facture({ vente, client, commande, periode, onFermer }) {
   const langue = client?.langue === "en" ? "en" : "fr";
   const m = MOTS[langue];
   const paquet = client?.conditionnement > 0 ? client.conditionnement : 30;
-  const lignes = vente.lignes ?? [];
+  const lignes = periode ? [] : (vente.lignes ?? []);
   const plusieurs = lignes.length > 1;
 
   // Le prix facturé n'est pas toujours celui qu'encaisse la ferme : Mercy
@@ -75,7 +86,23 @@ export default function Facture({ vente, client, commande, onFermer }) {
       montant: l.oeufs * prixFacture(l),
     };
   });
-  const total = rendues.reduce((s, l) => s + l.montant, 0);
+  const dateCourte = langue === "en" ? dateAnglaise : dateFrancaise;
+  // Une facture de période reprend une semaine de livraisons, chacune avec sa
+  // date et son bon de commande. Une livraison à plusieurs calibres donne
+  // plusieurs lignes : le modèle n'a qu'un prix unitaire par ligne.
+  const renduesPeriode = (periode?.ventes ?? []).flatMap((v) =>
+    (v.lignes ?? []).map((l) => ({
+      cle: `${v.id}-${l.calibre}`,
+      date: dateCourte(v.date),
+      commande: v.commandes?.[0]?.numero ?? "",
+      quantite: l.oeufs / paquet,
+      prixUnit: prixFacture(l) * paquet,
+      montant: l.oeufs * prixFacture(l),
+    }))
+  );
+  const total = periode
+    ? renduesPeriode.reduce((s, l) => s + l.montant, 0)
+    : rendues.reduce((s, l) => s + l.montant, 0);
   const delai = client?.delai_paiement_jours ?? 0;
   const complet = client?.modele === "complet";
   const nomImprime = client?.nom_facture || client?.nom;
@@ -88,7 +115,9 @@ export default function Facture({ vente, client, commande, onFermer }) {
     d.setDate(d.getDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const ponte = jourPlus(vente.date, -1);
+  // Une facture de période n'a pas de livraison unique : pas de date de ponte
+  // à en tirer, et `vente` y est vide.
+  const ponte = periode ? null : jourPlus(vente.date, -1);
 
   return (
     <div className="tf-facture-fond" onClick={onFermer}>
@@ -114,9 +143,18 @@ export default function Facture({ vente, client, commande, onFermer }) {
               <div>NIF: {FERME.nif}</div>
               <div>STAT: {FERME.stat}</div>
 
-              <p className="tf-facture-num">{m.facture} {numeroFacture(vente.created_at)}</p>
-              {commande?.numero && <p className="tf-facture-num">{m.commande}: {commande.numero}</p>}
-              <p className="tf-facture-date">{m.date}: <b>{dateLongue(vente.date)}</b></p>
+              {periode ? (
+                <p className="tf-facture-periode">
+                  {m.titrePeriode(dateCourte(periode.du, false), dateCourte(periode.au, false))}
+                </p>
+              ) : (
+                <>
+                  <p className="tf-facture-num">{m.facture} {numeroFacture(vente.created_at)}</p>
+                  {commande?.numero && <p className="tf-facture-num">{m.commande}: {commande.numero}</p>}
+                </>
+              )}
+              <p className="tf-facture-date">{m.date}: <b>{dateLongue(periode ? periode.emise : vente.date)}</b></p>
+              {periode && <p className="tf-facture-desc"><b>{m.description}</b> {m.oeufs}</p>}
             </div>
 
             <div className="tf-facture-eux">
@@ -125,7 +163,7 @@ export default function Facture({ vente, client, commande, onFermer }) {
               {client?.nif && <p>NIF {client.nif}{client.stat ? ` STAT: ${client.stat}` : ""}</p>}
               {client?.refs_legales && <p className="tf-facture-multi">{client.refs_legales}</p>}
               {client?.telephone_fac && <p>{m.tel} : {client.telephone_fac}</p>}
-              {client?.dates_oeufs && (
+              {!periode && client?.dates_oeufs && (
                 <>
                   <p className="tf-facture-oeufs">Date de Ponte :<br /><b>{dateLongue(ponte)}</b></p>
                   <p className="tf-facture-oeufs">Date de Péremption :<br /><b>{dateLongue(jourPlus(ponte, 21))}</b></p>
@@ -137,15 +175,25 @@ export default function Facture({ vente, client, commande, onFermer }) {
           <table className="tf-facture-table">
             <thead>
               <tr>
-                <th>{complet ? m.designation : m.categorie}</th>
-                {complet && <th>{m.code}</th>}
+                {periode && <><th>{m.colDate}</th><th>{m.colCommande}</th></>}
+                {!periode && <th>{complet ? m.designation : m.categorie}</th>}
+                {!periode && complet && <th>{m.code}</th>}
                 <th>{m.quantite}</th>
                 <th>{m.prixUnit}</th>
                 <th>{m.montant}</th>
               </tr>
             </thead>
             <tbody>
-              {rendues.map((l) => (
+              {periode && renduesPeriode.map((l) => (
+                <tr key={l.cle}>
+                  <td className="tf-facture-jour">{l.date}</td>
+                  <td>{l.commande}</td>
+                  <td>{l.quantite}</td>
+                  <td>{fmt(l.prixUnit)}</td>
+                  <td>{fmt(l.montant)}</td>
+                </tr>
+              ))}
+              {!periode && rendues.map((l) => (
                 <tr key={l.calibre}>
                   <td>{l.designation}</td>
                   {complet && <td>{FERME.codeArticle}</td>}
@@ -157,9 +205,9 @@ export default function Facture({ vente, client, commande, onFermer }) {
               {/* Le modèle simple n'a pas de ligne de total : une livraison
                   n'y porte qu'une seule catégorie, le montant fait le total.
                   Dès qu'il y en a plusieurs, il en faut bien un. */}
-              {(complet || rendues.length > 1) && (
+              {(periode || complet || rendues.length > 1) && (
                 <tr className="tf-facture-total">
-                  <td colSpan={complet ? 3 : 2} />
+                  <td colSpan={periode || complet ? 3 : 2} />
                   <td>{m.total}</td>
                   <td>{fmt(total)}</td>
                 </tr>
@@ -174,10 +222,16 @@ export default function Facture({ vente, client, commande, onFermer }) {
                 {m.banque}{"\n"}{PAIEMENT.banque}
               </p>
             )}
-            {client?.montant_lettres && (
-              <p><b>{m.arrete}</b> {sommeArrettee(total)}</p>
+            {(periode || client?.montant_lettres) && (
+              <p><b>{m.arrete}</b>{" "}
+                {langue === "en" ? sumInWords(total) : sommeArrettee(total)}</p>
             )}
-            {client?.afficher_conditions !== false && (
+            {periode && (
+              <p className="tf-facture-multi">{m.banque}{"\n"}{PAIEMENT.banque}</p>
+            )}
+            {/* La facture de période n'annonce pas de délai : elle solde une
+                semaine déjà livrée, et le modèle n'en porte pas. */}
+            {!periode && client?.afficher_conditions !== false && (
               <p>{delai > 0 ? m.conditions(delai) : m.comptant}</p>
             )}
           </div>

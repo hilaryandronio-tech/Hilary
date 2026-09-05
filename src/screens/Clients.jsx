@@ -17,6 +17,21 @@ const TABLES = ["ventes", "vente_lignes"];
 
 const moisCourant = () => today().slice(0, 7);
 
+const jourPlus = (iso, n) => {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+// La dernière semaine complète, lundi au dimanche — le rythme des factures
+// hebdomadaires envoyées jusqu'ici.
+const derniereSemaine = () => {
+  const d = new Date(today() + "T12:00:00");
+  const depuisLundi = (d.getDay() + 6) % 7;          // dimanche = 6, lundi = 0
+  const dimanche = jourPlus(today(), -depuisLundi - 1);
+  return { du: jourPlus(dimanche, -6), au: dimanche };
+};
+
 const bornesMois = (mois) => {
   const [a, m] = mois.split("-").map(Number);
   const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
@@ -57,6 +72,9 @@ export default function Clients() {
   const [serveur, setServeur] = useState([]);
   const [file, setFile] = useState([]);
   const [aFacturer, setAFacturer] = useState(null);
+  const [semaine, setSemaine] = useState(derniereSemaine);
+  const [periode, setPeriode] = useState(null);
+  const [cherche, setCherche] = useState(false);
   const requete = useRef(0);
 
   const client = clients.find((c) => c.nom === clientNom) ?? clients[0];
@@ -118,6 +136,30 @@ export default function Clients() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client?.id, mois]);
 
+  const editerPeriode = async () => {
+    if (!client?.id) return;
+    setCherche(true);
+    const { data, error } = await supabase
+      .from("ventes")
+      .select("id, date, vente_lignes(calibre, oeufs, prix_unit), commandes(numero)")
+      .eq("client_id", client.id)
+      .gte("date", semaine.du)
+      .lte("date", semaine.au)
+      .order("date");
+    setCherche(false);
+    if (error || !data?.length) {
+      window.alert("Aucune livraison sur cette période.");
+      return;
+    }
+    setPeriode({
+      du: semaine.du,
+      au: semaine.au,
+      // Les factures existantes sont émises le lendemain de la période.
+      emise: jourPlus(semaine.au, 1),
+      ventes: data.map((v) => ({ ...v, lignes: v.vente_lignes ?? [] })),
+    });
+  };
+
   const livraisons = useMemo(
     () => [...file, ...serveur].sort((a, b) => b.date.localeCompare(a.date)),
     [file, serveur]
@@ -164,6 +206,33 @@ export default function Clients() {
           <div className="tf-kpi" data-alert={restantDu ? 1 : 0}>
             <div className="tf-kpi-n">{fmt(restantDu)}</div>
             <div className="tf-kpi-l">Ar restant dû sur le mois</div>
+          </div>
+        </div>
+
+        {/* Certains clients — Mercy Ships — reçoivent une facture par semaine
+            plutôt qu'une par livraison. La période est libre : la semaine
+            écoulée est proposée, elle se change à la main. */}
+        <div className="tf-card">
+          <div className="tf-cardhead">
+            <span className="tf-cardtitle">Facture de période</span>
+            <span className="tf-tag">PLUSIEURS LIVRAISONS</span>
+          </div>
+          <div className="tf-grid2">
+            <label className="tf-field">
+              <span className="tf-label">Du</span>
+              <input className="tf-saisie" type="date" value={semaine.du} max={semaine.au}
+                onChange={(e) => setSemaine((s) => ({ ...s, du: e.target.value }))} />
+            </label>
+            <label className="tf-field">
+              <span className="tf-label">Au</span>
+              <input className="tf-saisie" type="date" value={semaine.au} min={semaine.du} max={today()}
+                onChange={(e) => setSemaine((s) => ({ ...s, au: e.target.value }))} />
+            </label>
+          </div>
+          <div className="tf-cta-in" style={{ marginTop: 8 }}>
+            <button className="tf-btn" onClick={editerPeriode} disabled={!client?.id || cherche}>
+              {cherche ? "…" : "Éditer la facture"}
+            </button>
           </div>
         </div>
 
@@ -215,6 +284,10 @@ export default function Clients() {
           );
         })}
       </main>
+
+      {periode && (
+        <Facture vente={{}} client={client} periode={periode} onFermer={() => setPeriode(null)} />
+      )}
 
       {aFacturer && (
         <Facture

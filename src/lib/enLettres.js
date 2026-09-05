@@ -76,3 +76,63 @@ export function sommeArrettee(montant) {
   const mots = enLettres(montant);
   return `${mots[0].toUpperCase()}${mots.slice(1)} ariary`;
 }
+
+
+// =====================================================================
+//  En anglais, pour la facture hebdomadaire de Mercy Ships :
+//  « Three million, seven hundred and fifty thousand Ariary ».
+// =====================================================================
+
+const ONES = [
+  "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+  "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+  "seventeen", "eighteen", "nineteen",
+];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+function underHundred(n) {
+  if (n < 20) return ONES[n];
+  const t = TENS[Math.floor(n / 10)];
+  const u = n % 10;
+  return u ? `${t}-${ONES[u]}` : t;
+}
+
+function underThousand(n) {
+  if (n < 100) return underHundred(n);
+  const h = `${ONES[Math.floor(n / 100)]} hundred`;
+  const reste = n % 100;
+  // L'usage britannique, celui des factures existantes : « seven hundred and
+  // fifty », avec le « and ».
+  return reste ? `${h} and ${underHundred(reste)}` : h;
+}
+
+/** 3750000 → « three million, seven hundred and fifty thousand ». */
+export function inWords(nombre) {
+  const n = Math.round(Math.abs(nombre || 0));
+  if (n === 0) return "zero";
+  const tranches = [
+    { valeur: 1_000_000_000, nom: "billion" },
+    { valeur: 1_000_000, nom: "million" },
+    { valeur: 1_000, nom: "thousand" },
+  ];
+  let reste = n;
+  const morceaux = [];
+  for (const t of tranches) {
+    const combien = Math.floor(reste / t.valeur);
+    if (!combien) continue;
+    reste %= t.valeur;
+    morceaux.push(`${underThousand(combien)} ${t.nom}`);
+  }
+  if (!reste) return morceaux.join(", ");
+  // « one thousand and five », mais « one thousand, two hundred and five » :
+  // le « and » ne sert que devant un dernier groupe inférieur à cent.
+  const fin = underThousand(reste);
+  if (!morceaux.length) return fin;
+  return morceaux.join(", ") + (reste < 100 ? ` and ${fin}` : `, ${fin}`);
+}
+
+/** « Three million, seven hundred and fifty thousand Ariary ». */
+export function sumInWords(montant) {
+  const mots = inWords(montant);
+  return `${mots[0].toUpperCase()}${mots.slice(1)} Ariary`;
+}
