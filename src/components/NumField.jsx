@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { fmt } from "./format";
 import { useSurOrdinateur } from "../lib/useSurOrdinateur";
 
@@ -13,12 +14,20 @@ const MAX = 9999999;
 // directement : ouvrir un pavé tactile devant quelqu'un qui a un clavier sous
 // les mains, c'est lui faire viser douze touches pour rien.
 //
-// La case ne s'active que si l'écran passe `onChange`. Un appelant qui ne le
-// fait pas garde le pavé partout, donc rien ne casse tant que tout n'est pas
-// converti.
-export default function NumField({ label, sous, unit, value, tone, detail, onOpen, onChange }) {
+// Deux façons de rendre la valeur, selon ce que l'écran demande :
+//  - `onChange` : à chaque touche, pour un brouillon qu'on enregistre plus tard ;
+//  - `onCommit` : à la sortie du champ seulement, quand la saisie déclenche une
+//    écriture — un prix de vente, une correction de stock. Une écriture par
+//    chiffre tapé remplirait la file d'attente de valeurs intermédiaires.
+export default function NumField({
+  label, sous, unit, value, tone, detail, onOpen, onChange, onCommit,
+}) {
   const surOrdinateur = useSurOrdinateur();
-  const saisieDirecte = surOrdinateur && onOpen && onChange;
+  const saisieDirecte = surOrdinateur && onOpen && (onChange || onCommit);
+  // Pendant la frappe, le champ affiche ce qu'on tape et non la valeur reçue :
+  // celle du reste de provende est calculée, elle ne suivrait pas la frappe.
+  // `null` veut dire « pas en cours d'édition ».
+  const [saisie, setSaisie] = useState(null);
 
   const contenu = (
     <>
@@ -37,6 +46,7 @@ export default function NumField({ label, sous, unit, value, tone, detail, onOpe
   );
 
   if (saisieDirecte) {
+    const texte = (n) => (n ? String(n) : "");
     return (
       <label className="tf-field" data-filled={value ? 1 : 0} data-tone={tone} data-saisie="1">
         {contenu}
@@ -47,14 +57,24 @@ export default function NumField({ label, sous, unit, value, tone, detail, onOpe
             inputMode="numeric"
             // Pas de séparateur de milliers pendant la frappe : « 1 234 » se
             // rejetterait lui-même au caractère suivant.
-            value={value ? String(value) : ""}
+            value={saisie ?? texte(value)}
             placeholder="0"
             aria-label={`${label}${unit ? ` en ${unit}` : ""}`}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => { setSaisie(texte(value)); e.target.select(); }}
             onChange={(e) => {
               const chiffres = e.target.value.replace(/\D/g, "");
-              onChange(chiffres ? Math.min(Number(chiffres), MAX) : 0);
+              setSaisie(chiffres);
+              onChange?.(chiffres ? Math.min(Number(chiffres), MAX) : 0);
             }}
+            onBlur={() => {
+              if (saisie !== null && Number(saisie || 0) !== (value || 0)) {
+                onCommit?.(Math.min(Number(saisie || 0), MAX));
+              }
+              setSaisie(null);
+            }}
+            // Entrée sort du champ : la validation passe par le même chemin que
+            // le clic ailleurs, il n'y a qu'un endroit où l'écriture part.
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           />
           <span className="tf-unit">{unit}</span>
         </span>

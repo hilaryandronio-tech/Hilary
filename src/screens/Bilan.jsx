@@ -145,9 +145,12 @@ export default function Bilan() {
           <div className="tf-cardhead"><span className="tf-cardtitle">Paramètres de coût</span></div>
           <div className="tf-fields">
             <NumField label="Coût d'une poulette à l'entrée en ponte" unit="Ar" value={params.cout_poulette}
-              onOpen={() => setPad({ key: "cout_poulette", label: "Coût d'une poulette", unit: "Ar", value: params.cout_poulette })} />
+              onOpen={() => setPad({ key: "cout_poulette", label: "Coût d'une poulette", unit: "Ar", value: params.cout_poulette })}
+              // À la sortie du champ : un paramètre part en écriture.
+              onCommit={(v) => setParam("cout_poulette", v)} />
             <NumField label="Durée de ponte prévue" unit="semaines" value={params.duree_ponte_sem}
-              onOpen={() => setPad({ key: "duree_ponte_sem", label: "Durée de ponte", unit: "sem", value: params.duree_ponte_sem })} />
+              onOpen={() => setPad({ key: "duree_ponte_sem", label: "Durée de ponte", unit: "sem", value: params.duree_ponte_sem })}
+              onCommit={(v) => setParam("duree_ponte_sem", v)} />
           </div>
           <p className="tf-note">
             Achat de la poulette + élevage jusqu'à la ponte, étalé sur la durée de ponte.

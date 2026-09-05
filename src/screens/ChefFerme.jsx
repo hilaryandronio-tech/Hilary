@@ -250,7 +250,10 @@ export default function ChefFerme() {
                 label: "Sacs réellement comptés en magasin",
                 unit: "kg",
                 value: Math.max(0, stockAffiche),
-              })} />
+              })}
+              // À la sortie du champ : l'écart compté devient une entrée de
+              // stock, il ne faut pas en enregistrer une par chiffre tapé.
+              onCommit={(v) => corrigerStock(v)} />
           </div>
           {stockIncoherent ? (
             <div className="tf-live" data-alerte="1">

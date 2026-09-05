@@ -347,7 +347,10 @@ export default function PointVente() {
               <NumField key={c} label={libelle(c)} sous={POIDS[c]} unit="Ar" value={prixBase[c]}
                 onOpen={peutModifierPrix
                   ? () => setPad({ key: `prix_${c}`, label: `Prix ${libelle(c)} (${POIDS[c]})`, unit: "Ar", value: prixBase[c] })
-                  : undefined} />
+                  : undefined}
+                // À la sortie du champ seulement : un prix part en écriture,
+                // une par chiffre tapé encombrerait la file pour rien.
+                onCommit={peutModifierPrix ? (v) => modifierPrixBase(c, v) : undefined} />
             ))}
           </div>
           <p className="tf-note">

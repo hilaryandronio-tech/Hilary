@@ -168,6 +168,9 @@ export default function Cheptel() {
                       : null
                   }
                   onOpen={() => ouvrir(l)}
+                  // À la sortie du champ : l'effectif part en écriture, pas un
+                  // enregistrement par chiffre tapé.
+                  onCommit={(v) => v !== l.vivant && enregistrer(l.lot_id, v)}
                 />
                 <NumField
                   label="Provende"
@@ -175,6 +178,7 @@ export default function Cheptel() {
                   value={l.prix_provende_kg ?? 0}
                   detail={null}
                   onOpen={() => ouvrirPrix(l)}
+                  onCommit={(v) => v !== (l.prix_provende_kg ?? 0) && enregistrerPrix(l.lot_id, v)}
                 />
               </div>
               {/* Sans ce réglage, l'entrée en ponte d'une vague se ferait en
