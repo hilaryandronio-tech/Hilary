@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { TEAM } from "../data/team";
 import Version from "../components/Version";
@@ -13,7 +13,32 @@ export default function Login() {
 
   const entree = TEAM.find((t) => t.key === qui);
 
+  // Le pavé à l'écran a été dessiné pour un pouce, dehors. Sur ordinateur il
+  // obligeait à cliquer six chiffres à la souris alors qu'un clavier est là.
+  // `connecterRef` évite de réabonner l'écouteur à chaque frappe, et surtout
+  // de capturer un `pin` périmé au moment de l'envoi.
+  const connecterRef = useRef(null);
+  useEffect(() => {
+    const auClavier = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || envoi) return;
+      if (e.key >= "0" && e.key <= "9") {
+        setPin((p) => (p.length < CODE_LEN ? p + e.key : p));
+        setErreur("");
+      } else if (e.key === "Backspace") {
+        setPin((p) => p.slice(0, -1));
+      } else if (e.key === "Enter") {
+        connecterRef.current?.();
+      } else {
+        return;
+      }
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", auClavier);
+    return () => window.removeEventListener("keydown", auClavier);
+  }, [envoi]);
+
   const connecter = async () => {
+    if (pin.length < CODE_LEN || envoi) return;
     setEnvoi(true);
     setErreur("");
     const { error } = await supabase.auth.signInWithPassword({ email: entree.email, password: pin });
@@ -33,6 +58,7 @@ export default function Login() {
       setPin("");
     }
   };
+  connecterRef.current = connecter;
 
   return (
     <div className="tf">
@@ -51,7 +77,7 @@ export default function Login() {
             ))}
           </div>
 
-          <div className="tf-login-lbl">Code à {CODE_LEN} chiffres</div>
+          <div className="tf-login-lbl">Code à {CODE_LEN} chiffres · ou tape-le au clavier</div>
           <div className="tf-pin">
             {[...Array(CODE_LEN).keys()].map((i) => <i key={i} data-on={pin.length > i ? 1 : 0} />)}
           </div>

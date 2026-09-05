@@ -321,6 +321,10 @@
               color:#B9A99D; }
 .tf-role-version { border-color:transparent; padding-left:4px; cursor:default; }
 
+/* Rappel du clavier sous le pavé. Discret : sur téléphone il ne sert à rien,
+   il ne doit pas manger la place des touches. */
+.tf-pad-aide { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted);
+               text-align:center; margin:10px 0 0; }
 .tf-login-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em;
                 text-transform:uppercase; color:#B9A99D; margin-bottom:8px; }
 .tf-who { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:22px; }
