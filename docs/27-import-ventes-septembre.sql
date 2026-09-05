@@ -10,11 +10,12 @@
 --  Prix : le tarif négocié du client quand il existe, sinon le prix de base
 --  du calibre. C'est exactement ce que la caisse aurait appliqué.
 --
---  Crédit : le registre ne dit pas qui a payé comptant. On considère à
---  crédit les clients qui ont un délai de paiement — Leader Price, Mercy
---  Ships, Mada-Rest, La braise, Mr Mamy — et payées comptant toutes les
---  autres. À corriger client par client si c'est faux : une vente marquée
---  payée à tort disparaît des créances.
+--  Crédit : le registre ne le dit pas, la liste vient du user. Sont à
+--  crédit Leader Price, Mercy Ships, Calypso, Masteva, La braise (« Côté
+--  cour » sur ses factures), Mada-Rest et Mr Mamy ; tous les autres paient
+--  comptant. On ne le déduit pas du délai de paiement : Calypso et Masteva
+--  n'en ont aucun d'enregistré et seraient comptés payés à tort, ce qui les
+--  ferait disparaître des créances.
 --
 --  Le numéro du carnet est posé explicitement, donc le compteur du mois
 --  n'est pas touché : la prochaine vente saisie portera toujours 076.
@@ -81,7 +82,8 @@ prepare as (
          k.jour, k.numero, c.id as client_id,
          k.calibre, k.oeufs,
          coalesce(t.prix, cal.prix_base) as prix,
-         c.delai_paiement_jours > 0 as credit
+         c.nom in ('Leader Price', 'Mercy Ships', 'Calypso', 'Masteva',
+                   'La braise', 'MadaRest', 'Mr Mamy') as credit
   from   carnet k
   join   clients c  on c.nom = k.client
   join   calibres cal on cal.code = k.calibre
