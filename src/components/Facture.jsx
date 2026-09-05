@@ -128,6 +128,10 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   // Le bon de commande du carnet s'il existe — c'est la référence que le
   // client connaît — sinon le numéro attribué par la base à la vente.
   const numeroCommande = commande?.numero || vente?.numero_commande;
+  // Le numéro réellement porté par la facture envoyée au client quand il est
+  // connu. À défaut seulement, celui dérivé de l'heure d'enregistrement :
+  // stable, mais différent de celui que le client a déjà en main.
+  const numeroF = vente?.numero_facture || (vente?.created_at && numeroFacture(vente.created_at));
 
   // Mada-Rest exige la date de ponte et celle de péremption. Les factures
   // existantes prennent la veille de la livraison, et vingt et un jours de
@@ -146,7 +150,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   // les renommer une par une avant de les envoyer.
   const nomFichier = periode
     ? `Facture ${nomImprime} du ${periode.du} au ${periode.au}`
-    : `${numeroFacture(vente.created_at)} ${nomImprime}`;
+    : `${numeroF} ${nomImprime}`;
   useEffect(() => {
     const avant = document.title;
     document.title = nomFichier;
@@ -189,7 +193,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
                 </p>
               ) : (
                 <>
-                  <p className="tf-facture-num">{m.facture} {numeroFacture(vente.created_at)}</p>
+                  <p className="tf-facture-num">{m.facture} {numeroF}</p>
                   {numeroCommande && <p className="tf-facture-num">{m.commande}: {numeroCommande}</p>}
                 </>
               )}
