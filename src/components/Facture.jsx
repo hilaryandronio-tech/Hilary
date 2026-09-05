@@ -113,7 +113,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
     (v.lignes ?? []).map((l) => ({
       cle: `${v.id}-${l.calibre}`,
       date: dateCourte(v.date),
-      commande: v.commandes?.[0]?.numero ?? "",
+      commande: v.commandes?.[0]?.numero || v.numero_commande || "",
       quantite: l.oeufs / paquet,
       prixUnit: prixFacture(l) * paquet,
       montant: l.oeufs * prixFacture(l),
@@ -125,6 +125,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   const delai = client?.delai_paiement_jours ?? 0;
   const complet = client?.modele === "complet";
   const nomImprime = client?.nom_facture || client?.nom;
+  // Le bon de commande du carnet s'il existe — c'est la référence que le
+  // client connaît — sinon le numéro attribué par la base à la vente.
+  const numeroCommande = commande?.numero || vente?.numero_commande;
 
   // Mada-Rest exige la date de ponte et celle de péremption. Les factures
   // existantes prennent la veille de la livraison, et vingt et un jours de
@@ -187,7 +190,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
               ) : (
                 <>
                   <p className="tf-facture-num">{m.facture} {numeroFacture(vente.created_at)}</p>
-                  {commande?.numero && <p className="tf-facture-num">{m.commande}: {commande.numero}</p>}
+                  {numeroCommande && <p className="tf-facture-num">{m.commande}: {numeroCommande}</p>}
                 </>
               )}
               <p className="tf-facture-date">{m.date}: <b>{dateLongue(periode ? periode.emise : vente.date)}</b></p>

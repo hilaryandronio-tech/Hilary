@@ -84,7 +84,7 @@ export default function Clients() {
     const [debut, fin] = bornesMois(mois);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, created_at, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant), commandes(numero)")
+      .select("id, date, created_at, numero_commande, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", debut)
       .lte("date", fin)
@@ -141,7 +141,7 @@ export default function Clients() {
     setCherche(true);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, vente_lignes(calibre, oeufs, prix_unit), commandes(numero)")
+      .select("id, date, numero_commande, vente_lignes(calibre, oeufs, prix_unit), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", semaine.du)
       .lte("date", semaine.au)
