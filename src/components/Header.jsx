@@ -44,7 +44,7 @@ export default function Header() {
     <header className="tf-head">
       <div className="tf-brand">
         <div className="tf-mark">
-          <img src="/icones/icone-blanc-512.png" alt="Tama Ferme" />
+          <img src="/logo-marque.png" alt="Tama Ferme" />
           <div className="tf-logo">Tama<span>·</span>Ferme</div>
         </div>
         <div className="tf-brand-etat">

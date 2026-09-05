@@ -69,7 +69,7 @@ export default function Login() {
     <div className="tf">
       <div className="tf-login">
         <div className="tf-login-in">
-          <img src="/icones/icone-blanc-512.png" alt="Tama Ferme" />
+          <img src="/logo-marque.png" alt="Tama Ferme" />
           <div className="tf-login-t">Tama Ferme</div>
           <div className="tf-login-s">Gestion de la ferme · Toamasina</div>
 
