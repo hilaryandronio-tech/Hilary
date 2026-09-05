@@ -14,9 +14,13 @@ import { useClients } from "../lib/useClients";
 import { useAuth } from "../context/AuthContext";
 
 const slug = (nom) => nom.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-// Les cassés se vendent, mais pas aux clients grossistes (grille "Vente
-// client") ni comme un calibre normal — juste à l'unité, au comptoir.
+// Les cassés se vendent comme les autres, à l'unité, aux clients comme au
+// comptoir. La grille client les excluait — le schéma partait du principe
+// qu'un grossiste n'en prenait pas — mais le carnet de septembre en compte
+// chez Chinoise et Lasopy, et ces livraisons ne pouvaient donc pas être
+// saisies du tout.
 const CALIBRES_DETAIL = [...CALIBRES, "CASSE"];
+const CALIBRES_CLIENT = CALIBRES_DETAIL;
 const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 
 export default function PointVente() {
@@ -71,11 +75,11 @@ export default function PointVente() {
   const client = clients.find((c) => slug(c.nom) === clientKey) ?? clients[0];
   const venteClient = (cl, c) => val(`v_${slug(cl.nom)}_${c}`) * prixClient(cl, c);
   const totalClients = useMemo(
-    () => clients.reduce((s, cl) => s + CALIBRES.reduce((t, c) => t + venteClient(cl, c), 0), 0),
+    () => clients.reduce((s, cl) => s + CALIBRES_CLIENT.reduce((t, c) => t + venteClient(cl, c), 0), 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [draft, clients]
   );
-  const totalClientCourant = CALIBRES.reduce((s, c) => s + venteClient(client, c), 0);
+  const totalClientCourant = CALIBRES_CLIENT.reduce((s, c) => s + venteClient(client, c), 0);
 
   // Vente au comptoir, prix de base — distincte de la grille clients
   // grossistes (tarifs négociés), les deux comptent en œufs à l'unité pour
@@ -114,7 +118,7 @@ export default function PointVente() {
     const auteur = profil?.id;
 
     for (const cl of clients) {
-      const lignesCalibre = CALIBRES.filter((c) => val(`v_${slug(cl.nom)}_${c}`) > 0);
+      const lignesCalibre = CALIBRES_CLIENT.filter((c) => val(`v_${slug(cl.nom)}_${c}`) > 0);
       if (!lignesCalibre.length) continue;
       if (!cl.id) {
         setFlash(`${cl.nom} : client non synchronisé, vente non enregistrée. Réessaie une fois en ligne.`);
@@ -235,7 +239,7 @@ export default function PointVente() {
             clients={clients}
             selection={client?.nom}
             onSelect={(nom) => setClientKey(slug(nom))}
-            marque={(cl) => CALIBRES.some((c) => val(`v_${slug(cl.nom)}_${c}`))}
+            marque={(cl) => CALIBRES_CLIENT.some((c) => val(`v_${slug(cl.nom)}_${c}`))}
           />
           {/* Sans identifiant Supabase, la commande sera refusée à
               l'enregistrement. Le dire ici, en clair et en permanence : le
@@ -256,7 +260,7 @@ export default function PointVente() {
                 Commande de <strong>{client.nom}</strong>
               </div>
               <div className="tf-grid4">
-                {CALIBRES.map((c) => {
+                {CALIBRES_CLIENT.map((c) => {
                   const n = val(`v_${slug(client.nom)}_${c}`);
                   // Le prix va dans la ligne déjà réservée sous la valeur, pas
                   // dans le titre : un libellé long passait à la ligne et
