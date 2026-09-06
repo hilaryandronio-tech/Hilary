@@ -25,10 +25,14 @@ const jourPlus = (iso, n) => {
 
 // La dernière semaine complète, lundi au dimanche — le rythme des factures
 // hebdomadaires envoyées jusqu'ici.
+//
+// Le dimanche, la semaine s'achève le jour même : c'est ce jour-là qu'on
+// édite la facture, et remonter d'une semaine de plus proposait celle qui
+// venait d'être envoyée — sept jours en retard.
 const derniereSemaine = () => {
   const d = new Date(today() + "T12:00:00");
   const depuisLundi = (d.getDay() + 6) % 7;          // dimanche = 6, lundi = 0
-  const dimanche = jourPlus(today(), -depuisLundi - 1);
+  const dimanche = depuisLundi === 6 ? today() : jourPlus(today(), -depuisLundi - 1);
   return { du: jourPlus(dimanche, -6), au: dimanche };
 };
 
