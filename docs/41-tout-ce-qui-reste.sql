@@ -4,8 +4,8 @@
 --  À exécuter dans Supabase > SQL Editor. Rejouable, et sans effet sur ce
 --  qui a déjà été passé : chaque instruction reprise ici est idempotente.
 --
---  Ce fichier n'apporte rien de neuf. Il rejoue docs/34 à docs/42 dans
---  l'ordre, pour n'avoir qu'un seul copier-coller à faire au lieu de sept.
+--  Ce fichier n'apporte rien de neuf. Il rejoue docs/34 à docs/43 dans
+--  l'ordre, pour n'avoir qu'un seul copier-coller à faire au lieu de huit.
 --  Les fichiers d'origine gardent les explications ; celui-ci ne garde
 --  que les instructions.
 --
@@ -18,6 +18,7 @@
 --    39  les mentions de facture de Côté cour
 --    40  les mentions de facture de La braise
 --    42  les mentions de facture de Masteva
+--    43  le délai de paiement de Mr Mamy, cinq jours
 --
 --  Le contrôle est en fin de fichier : dans l'éditeur Supabase, seul le
 --  résultat de la dernière requête s'affiche.
@@ -137,8 +138,12 @@ update clients set
 where nom = 'Masteva';
 
 
+-- ---------------------------------------------------------------- 43 --
+update clients set delai_paiement_jours = 5 where nom = 'Mr Mamy';
+
+
 -- =====================================================================
---  Contrôle unique. Huit lignes, toutes à « ok ».
+--  Contrôle unique. Neuf lignes, toutes à « ok ».
 -- =====================================================================
 
 select * from (
@@ -190,5 +195,10 @@ select * from (
          case when exists (select 1 from clients
                            where nom = 'Masteva' and conditionnement = 1
                              and adresse is not null)
+              then 'ok' else 'A REVOIR' end
+  union all
+  select 9, 'Mr Mamy : cinq jours',
+         case when exists (select 1 from clients
+                           where nom = 'Mr Mamy' and delai_paiement_jours = 5)
               then 'ok' else 'A REVOIR' end
 ) t order by n;
