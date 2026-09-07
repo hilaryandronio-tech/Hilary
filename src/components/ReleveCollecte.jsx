@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, today, dLabel } from "./format";
-import { CALIBRES, POIDS } from "../data/constants";
+import { CALIBRES, POIDS, PRIX_BASE, PRIX_CASSE } from "../data/constants";
 import { supabase } from "../lib/supabaseClient";
 import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import { lectureCachee } from "../lib/cacheLecture";
@@ -21,7 +21,12 @@ const LIGNES = [...CALIBRES, "CASSE"];
 const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 const vide = () => ({ sales: 0, perdus: 0 });
 
-export default function ReleveCollecte({ date, lots }) {
+// `avecPrix` ajoute la valeur de la collecte au prix de base du jour. Le
+// point de vente veut savoir ce que vaut ce qui vient de rentrer, sans
+// attendre de l'avoir vendu. `compact` replie les colonnes par bâtiment :
+// à la caisse on veut le total et sa valeur, le détail par bâtiment est un
+// autre écran.
+export default function ReleveCollecte({ date, lots, avecPrix = false, compact = false }) {
   // Ce qui est collecté ce jour-là vient de deux sources qu'il faut réunir :
   //   - `serveur` : ce que Supabase a enregistré ;
   //   - `file`    : ce qui est saisi mais attend la synchro.
@@ -33,7 +38,23 @@ export default function ReleveCollecte({ date, lots }) {
   // calibre : ils sont donc suivis à part.
   const [degatsServeur, setDegatsServeur] = useState({});
   const [degatsFile, setDegatsFile] = useState({});
+  // Le repli local sert au tout premier lancement sans réseau. Fusion et non
+  // remplacement, comme à la caisse : un calibre absent de la table laisserait
+  // sinon sa valeur à zéro sans le dire.
+  const [prix, setPrix] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
   const requete = useRef(0);
+
+  useEffect(() => {
+    if (!avecPrix) return;
+    // Même clé de cache que l'écran de caisse : les deux lisent la même
+    // grille, autant qu'ils la relisent une seule fois.
+    lectureCachee("calibres", () => supabase.from("calibres").select("code, prix_base"))
+      .then(({ data }) => {
+        if (data?.length) {
+          setPrix((p) => ({ ...p, ...Object.fromEntries(data.map((c) => [c.code, c.prix_base])) }));
+        }
+      });
+  }, [avecPrix]);
 
   const chargerServeur = async (jeton) => {
     // Une clé par jour : le relevé de la veille reste lisible au poulailler
@@ -124,6 +145,14 @@ export default function ReleveCollecte({ date, lots }) {
     (degatsFile[lotId] ?? degatsServeur[lotId] ?? vide())[champ];
   const degatsTotal = (champ) => lots.reduce((s, l) => s + degatsLot(l.id, champ), 0);
 
+  const totalCalibre = (c) => lots.reduce((s, l) => s + (collecte[l.id]?.[c] ?? 0), 0);
+  const valeurTotale = LIGNES.reduce((s, c) => s + totalCalibre(c) * (prix[c] ?? 0), 0);
+  // Les colonnes par bâtiment sautent en mode compact ; les deux colonnes de
+  // prix, quand elles existent, doivent alors être comblées sur les lignes qui
+  // ne les remplissent pas, sinon le tableau se décale.
+  const colonnesLot = !compact;
+  const cellulesPrixVides = avecPrix ? (<><td /><td /></>) : null;
+
   if (!lots.length) return null;
 
   return (
@@ -139,8 +168,9 @@ export default function ReleveCollecte({ date, lots }) {
           <thead>
             <tr>
               <th>Calibre</th>
-              {lots.map((l) => <th key={l.id}>{l.id}</th>)}
-              <th>Total</th>
+              {colonnesLot && lots.map((l) => <th key={l.id}>{l.id}</th>)}
+              <th>{compact ? "Œufs" : "Total"}</th>
+              {avecPrix && <><th>Prix</th><th>Valeur</th></>}
             </tr>
           </thead>
           <tbody>
@@ -153,8 +183,14 @@ export default function ReleveCollecte({ date, lots }) {
                     {libelle(c)}
                     <span className="tf-sous">{POIDS[c]}</span>
                   </th>
-                  {parLot.map((n, i) => <td key={lots[i].id}>{fmt(n)}</td>)}
+                  {colonnesLot && parLot.map((n, i) => <td key={lots[i].id}>{fmt(n)}</td>)}
                   <td>{fmt(total)}</td>
+                  {avecPrix && (
+                    <>
+                      <td>{fmt(prix[c] ?? 0)} Ar</td>
+                      <td>{fmt(total * (prix[c] ?? 0))}</td>
+                    </>
+                  )}
                 </tr>
               );
             })}
@@ -162,8 +198,14 @@ export default function ReleveCollecte({ date, lots }) {
           <tfoot>
             <tr>
               <th>Total œufs</th>
-              {lots.map((l) => <td key={l.id}>{fmt(totalLot(l.id))}</td>)}
+              {colonnesLot && lots.map((l) => <td key={l.id}>{fmt(totalLot(l.id))}</td>)}
               <td>{fmt(totalGeneral)}</td>
+              {avecPrix && (
+                <>
+                  <td />
+                  <td className="tf-facture-gras">{fmt(valeurTotale)}</td>
+                </>
+              )}
             </tr>
             {/* Œufs du jour rapportés aux poules vivantes du bâtiment. Les
                 cassés y comptent, comme dans le total : ils se vendent, la
@@ -173,7 +215,7 @@ export default function ReleveCollecte({ date, lots }) {
                 bâtiment donné pour effondré ferait chercher un problème qui
                 n'existe pas. Le total suit la même règle — tant qu'une fiche
                 manque, il porterait sur un cheptel qu'il ne couvre pas. */}
-            <tr data-taux="1">
+            {!compact && (<tr data-taux="1">
               <th>
                 Taux de ponte
                 <span className="tf-sous">sur poules vivantes</span>
@@ -190,20 +232,22 @@ export default function ReleveCollecte({ date, lots }) {
                   ? `${((totalGeneral / poulesTotal) * 100).toFixed(1)} %`
                   : "—"}
               </td>
-            </tr>
+              {cellulesPrixVides}
+            </tr>)}
             {/* Sous le total, et volontairement dehors : les sales sont
                 nettoyés puis vendus, donc déjà comptés dans leur calibre —
                 les remettre ici les compterait deux fois. Les perdus ne sont
                 pas de la production. */}
-            <tr data-hors-total="1">
+            {!compact && (<tr data-hors-total="1">
               <th>
                 Sales
                 <span className="tf-sous">à nettoyer</span>
               </th>
               {lots.map((l) => <td key={l.id}>{fmt(degatsLot(l.id, "sales"))}</td>)}
               <td>{fmt(degatsTotal("sales"))}</td>
-            </tr>
-            <tr data-hors-total="1">
+              {cellulesPrixVides}
+            </tr>)}
+            {!compact && (<tr data-hors-total="1">
               <th>
                 Perdus
                 <span className="tf-sous">irrécupérables</span>
@@ -214,14 +258,26 @@ export default function ReleveCollecte({ date, lots }) {
                 </td>
               ))}
               <td data-alerte={degatsTotal("perdus") > 0 ? 1 : 0}>{fmt(degatsTotal("perdus"))}</td>
-            </tr>
+              {cellulesPrixVides}
+            </tr>)}
           </tfoot>
         </table>
       </div>
       <div className="tf-live">
-        <span className="tf-live-n">{fmt(totalGeneral)}</span>
-        <span className="tf-live-l">œufs déjà enregistrés, tous bâtiments confondus</span>
+        <span className="tf-live-n">{fmt(avecPrix ? valeurTotale : totalGeneral)}</span>
+        <span className="tf-live-l">
+          {avecPrix
+            ? `Ar — valeur de ${fmt(totalGeneral)} œufs collectés, au prix de base`
+            : "œufs déjà enregistrés, tous bâtiments confondus"}
+        </span>
       </div>
+      {avecPrix && (
+        <p className="tf-note">
+          Une simulation, pas une recette : c'est ce que vaudrait la collecte vendue au
+          prix de base. Les clients à tarif négocié paient autre chose, et tout ne part
+          pas le jour même.
+        </p>
+      )}
       {enAttente && (
         <p className="tf-note">Les saisies pas encore synchronisées sont comprises dans ces chiffres.</p>
       )}

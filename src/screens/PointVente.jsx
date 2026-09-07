@@ -4,6 +4,7 @@ import NumField from "../components/NumField";
 import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveVentes from "../components/ReleveVentes";
+import ReleveCollecte from "../components/ReleveCollecte";
 import StockOeufs from "../components/StockOeufs";
 import ChoixClient from "../components/ChoixClient";
 import { fmt, today, dLabel } from "../components/format";
@@ -12,6 +13,7 @@ import { supabase } from "../lib/supabaseClient";
 import { enqueue, uuid } from "../lib/offlineQueue";
 import { lectureCachee } from "../lib/cacheLecture";
 import { useClients } from "../lib/useClients";
+import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
 
 const slug = (nom) => nom.toLowerCase().replace(/[^a-z0-9]+/g, "_");
@@ -27,6 +29,7 @@ const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 export default function PointVente() {
   const { profil } = useAuth();
   const clients = useClients();
+  const lots = useLotsEnPonte();
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
   const [prixBase, setPrixBase] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
   const [date, setDate] = useState(today());
@@ -227,6 +230,11 @@ export default function PointVente() {
             change : il reste au-dessus, comme dans le flux du texte. */}
         <div className="tf-deux-colonnes">
         <div className="tf-colonne-releve">
+        {/* Ce qui vient de rentrer, et ce que ça vaut. La magasinière saisit
+            la collecte au poulailler ; le vendeur la voit paraître ici sans
+            changer d'onglet, avec sa valeur au prix de base. Le détail par
+            bâtiment reste à l'écran Ponte — ici on veut le total. */}
+        <ReleveCollecte date={date} lots={lots} avecPrix compact />
         <ReleveVentes date={date} />
         <StockOeufs />
         </div>

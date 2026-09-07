@@ -26,7 +26,10 @@ export default function Collecte() {
 
         <DateSelector value={date} onChange={setDate} />
 
-        <ReleveCollecte date={date} lots={lots} />
+        {/* Le prix n'est affiché que du côté vente : la magasinière saisit des
+            œufs, pas des ariary, et son écran n'a pas à porter la valeur de
+            ce qu'elle compte. */}
+        <ReleveCollecte date={date} lots={lots} avecPrix />
       </main>
     </div>
   );
