@@ -35,6 +35,10 @@ export default function ChefFerme() {
       if (!data) return; // jamais chargé et hors ligne : on garde le seed
       setLots(data.map((l) => ({
         id: l.lot_id, nom: l.nom, en_ponte: l.en_ponte, vivant: l.vivant,
+        // v_effectif le calcule depuis la mise en place du bâtiment. Il était
+        // lu et jeté ici depuis le début : le chef de ferme n'avait nulle
+        // part où lire l'âge de ses vagues.
+        ageSemaines: l.age_semaines,
         prixProvende: l.prix_provende_kg,
       })));
     });
@@ -201,12 +205,33 @@ export default function ChefFerme() {
 
         <DateSelector value={date} onChange={(d) => { setDate(d); setDraft({}); }} />
 
+        {/* L'âge commande tout le reste : la ration, l'entrée en ponte, la
+            réforme. Il était calculé en base et affiché nulle part. En gros
+            chiffres, une tuile par vague, avant même le choix du bâtiment. */}
+        <div className="tf-kpis">
+          {lots.map((l) => (
+            <div className="tf-kpi" key={l.id} data-hero={lotId === l.id ? 1 : 0}>
+              <div className="tf-kpi-n">
+                {l.ageSemaines ?? "—"}<span className="tf-unit">sem.</span>
+              </div>
+              <div className="tf-kpi-l">
+                {l.id} · {l.en_ponte ? "en ponte" : "poulettes"} · {fmt(l.vivant)} poules
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="tf-note">
+          Âge compté depuis la mise en place du bâtiment. Une poulette entre en ponte vers
+          18 à 20 semaines et pond une cinquantaine de semaines : c'est ce qui dit quand une
+          vague va démarrer, et quand elle approche de la réforme.
+        </p>
+
         <div className="tf-lots">
           {lots.map((l) => (
             <button key={l.id} className="tf-lot" data-on={lotId === l.id ? 1 : 0}
               onClick={() => { setLotId(l.id); setDraft({}); }}>
               <div className="tf-lot-id">{l.id}</div>
-              <div className="tf-lot-m">{fmt(l.vivant)}</div>
+              <div className="tf-lot-m">{fmt(l.vivant)} · {l.ageSemaines ?? "—"} sem.</div>
             </button>
           ))}
         </div>
