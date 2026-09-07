@@ -7,6 +7,7 @@ import AlerteEchecs from "../components/AlerteEchecs";
 import ChoixClient from "../components/ChoixClient";
 import Facture from "../components/Facture";
 import NouveauClient from "../components/NouveauClient";
+import MoisSelector, { moisCourant, bornesMois, labelMois } from "../components/MoisSelector";
 import { useClients } from "../lib/useClients";
 
 const TABLES = ["ventes", "vente_lignes"];
@@ -14,8 +15,6 @@ const TABLES = ["ventes", "vente_lignes"];
 // Le compte d'un client grossiste : l'historique de ses livraisons, réglées
 // ou non. L'écran Créances ne montre que les impayées — une livraison
 // encaissée hier n'y est plus consultable nulle part.
-
-const moisCourant = () => today().slice(0, 7);
 
 const jourPlus = (iso, n) => {
   const d = new Date(iso + "T12:00:00");
@@ -35,20 +34,6 @@ const derniereSemaine = () => {
   const dimanche = depuisLundi === 6 ? today() : jourPlus(today(), -depuisLundi - 1);
   return { du: jourPlus(dimanche, -6), au: dimanche };
 };
-
-const bornesMois = (mois) => {
-  const [a, m] = mois.split("-").map(Number);
-  const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
-  return [`${mois}-01`, `${mois}-${String(dernier).padStart(2, "0")}`];
-};
-
-const decalerMois = (mois, n) => {
-  const [a, m] = mois.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1 + n, 1)).toISOString().slice(0, 7);
-};
-
-const labelMois = (mois) =>
-  new Date(mois + "-01T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
 // Le règlement n'est plus un drapeau sur la vente mais une somme de lignes
 // datées (docs/05-migration-encaissement-partiel.sql) : une livraison peut
@@ -185,7 +170,6 @@ export default function Clients() {
   const restantDu = livraisons
     .filter((l) => l.credit)
     .reduce((s, l) => s + Math.max(0, (l.montant ?? 0) - totalRegle(l)), 0);
-  const moisFutur = decalerMois(mois, 1) > moisCourant();
 
   return (
     <div className="tf">
@@ -202,16 +186,7 @@ export default function Clients() {
 
         <ChoixClient clients={clients} selection={client?.nom} onSelect={setClientNom} />
 
-        <div className="tf-dateselect">
-          <button className="tf-dateselect-nav" onClick={() => setMois(decalerMois(mois, -1))}
-            aria-label="Mois précédent">‹</button>
-          <div className="tf-dateselect-val">{labelMois(mois)}</div>
-          <button className="tf-dateselect-nav" onClick={() => setMois(decalerMois(mois, 1))}
-            disabled={moisFutur} aria-label="Mois suivant">›</button>
-          {mois !== moisCourant() && (
-            <button className="tf-dateselect-today" onClick={() => setMois(moisCourant())}>Ce mois</button>
-          )}
-        </div>
+        <MoisSelector mois={mois} onChange={setMois} />
 
         <div className="tf-kpis">
           <div className="tf-kpi" data-hero="1">

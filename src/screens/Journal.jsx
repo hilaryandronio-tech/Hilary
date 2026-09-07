@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import { fmt, dLabel, today } from "../components/format";
+import MoisSelector, { moisCourant, bornesMois, labelMois } from "../components/MoisSelector";
 import { supabase } from "../lib/supabaseClient";
 import { lectureCachee } from "../lib/cacheLecture";
 
@@ -8,24 +9,31 @@ import { lectureCachee } from "../lib/cacheLecture";
 // journée manque, ni qu'une recette a décroché avant-hier. Ce journal reprend
 // v_journalier, la vue qui agrège déjà tout par date.
 
-const JOURS = 31;
-
 export default function Journal() {
   const [lignes, setLignes] = useState([]);
   const [chargement, setChargement] = useState(true);
+  const [mois, setMois] = useState(moisCourant());
 
   useEffect(() => {
-    lectureCachee("v_journalier:journal", () =>
+    // Vider avant de recharger : sans ça le mois quitté reste affiché le temps
+    // de la requête, et sur une connexion de ferme cela dure.
+    setLignes([]);
+    setChargement(true);
+    const [debut, fin] = bornesMois(mois);
+    // La clé porte le mois : deux mois partageraient sinon le même cache, et
+    // hors ligne on resservirait le mauvais.
+    lectureCachee(`v_journalier:journal:${mois}`, () =>
       supabase
         .from("v_journalier")
         .select("date, oeufs, mortalite, encaisse, livre_credit, charges, poules_en_ponte")
+        .gte("date", debut)
+        .lte("date", fin)
         .order("date", { ascending: false })
-        .limit(JOURS)
     ).then(({ data }) => {
       setChargement(false);
       if (data) setLignes(data);
     });
-  }, []);
+  }, [mois]);
 
   const somme = (champ) => lignes.reduce((s, l) => s + Number(l[champ] ?? 0), 0);
   const jour = today();
@@ -35,11 +43,13 @@ export default function Journal() {
       <Header />
       <main className="tf-body">
         <p className="tf-eyebrow">Journal</p>
-        <h1 className="tf-h1">Les derniers jours</h1>
+        <h1 className="tf-h1">Mois par mois</h1>
         <p className="tf-sub">
           Une ligne par journée, la plus récente en haut. Un jour absent de cette liste n'a reçu
-          aucune saisie.
+          aucune saisie. Rien n'est archivé : les mois passés sont à une flèche de là.
         </p>
+
+        <MoisSelector mois={mois} onChange={setMois} />
 
         {chargement && (
           <div className="tf-card"><p className="tf-empty">Chargement…</p></div>
@@ -47,7 +57,7 @@ export default function Journal() {
 
         {!chargement && lignes.length === 0 && (
           <div className="tf-card">
-            <p className="tf-empty">Aucune journée enregistrée pour l'instant.</p>
+            <p className="tf-empty">Aucune saisie en {labelMois(mois)}.</p>
           </div>
         )}
 
@@ -55,7 +65,7 @@ export default function Journal() {
           <div className="tf-card">
             <div className="tf-cardhead">
               <span className="tf-cardtitle">Journée par journée</span>
-              <span className="tf-tag">{lignes.length} JOUR(S)</span>
+              <span className="tf-tag">{labelMois(mois).toUpperCase()}</span>
             </div>
             <div className="tf-releve-cadre" data-long="1">
               <table className="tf-releve">
@@ -111,7 +121,7 @@ export default function Journal() {
 
         <div className="tf-card">
           <div className="tf-cardhead">
-            <span className="tf-cardtitle">Sur la période</span>
+            <span className="tf-cardtitle">Total du mois</span>
             <span className="tf-tag">{lignes.length} JOUR(S)</span>
           </div>
           <div className="tf-ticket">
