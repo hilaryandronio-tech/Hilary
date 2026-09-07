@@ -234,7 +234,7 @@ export default function PointVente() {
             la collecte au poulailler ; le vendeur la voit paraître ici sans
             changer d'onglet, avec sa valeur au prix de base. Le détail par
             bâtiment reste à l'écran Ponte — ici on veut le total. */}
-        <ReleveCollecte date={date} lots={lots} avecPrix compact />
+        <ReleveCollecte date={date} lots={lots} clients={clients} avecPrix compact />
         <ReleveVentes date={date} />
         <StockOeufs />
         </div>

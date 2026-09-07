@@ -26,7 +26,7 @@ const vide = () => ({ sales: 0, perdus: 0 });
 // attendre de l'avoir vendu. `compact` replie les colonnes par bâtiment :
 // à la caisse on veut le total et sa valeur, le détail par bâtiment est un
 // autre écran.
-export default function ReleveCollecte({ date, lots, avecPrix = false, compact = false }) {
+export default function ReleveCollecte({ date, lots, avecPrix = false, compact = false, clients }) {
   // Ce qui est collecté ce jour-là vient de deux sources qu'il faut réunir :
   //   - `serveur` : ce que Supabase a enregistré ;
   //   - `file`    : ce qui est saisi mais attend la synchro.
@@ -42,6 +42,11 @@ export default function ReleveCollecte({ date, lots, avecPrix = false, compact =
   // remplacement, comme à la caisse : un calibre absent de la table laisserait
   // sinon sa valeur à zéro sans le dire.
   const [prix, setPrix] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
+  // Le tarif au regard duquel la collecte est valorisée. `null` = la grille
+  // de base. Les clients grossistes ne paient pas ce prix-là, et c'est chez
+  // eux que part l'essentiel : la valeur à la grille est un repère, pas une
+  // prévision de recette.
+  const [tarifClient, setTarifClient] = useState(null);
   const requete = useRef(0);
 
   useEffect(() => {
@@ -145,8 +150,21 @@ export default function ReleveCollecte({ date, lots, avecPrix = false, compact =
     (degatsFile[lotId] ?? degatsServeur[lotId] ?? vide())[champ];
   const degatsTotal = (champ) => lots.reduce((s, l) => s + degatsLot(l.id, champ), 0);
 
+  // Seuls les clients qui ont un tarif négocié valent un bouton : les autres
+  // achètent au prix de base, et soixante pastilles identiques ne diraient
+  // rien de plus que celle-là.
+  const negociants = useMemo(
+    () => (clients ?? []).filter((c) => Object.keys(c.tarifs ?? {}).length > 0),
+    [clients]
+  );
+  const choisi = negociants.find((c) => c.nom === tarifClient) ?? null;
+  // Un tarif négocié ne couvre en général qu'un calibre — le L2 chez Calypso,
+  // le L1 chez Mercy Ships. Les autres restent au prix de base, exactement
+  // comme la caisse les facture.
+  const prixDe = (c) => choisi?.tarifs?.[c] ?? prix[c] ?? 0;
+
   const totalCalibre = (c) => lots.reduce((s, l) => s + (collecte[l.id]?.[c] ?? 0), 0);
-  const valeurTotale = LIGNES.reduce((s, c) => s + totalCalibre(c) * (prix[c] ?? 0), 0);
+  const valeurTotale = LIGNES.reduce((s, c) => s + totalCalibre(c) * prixDe(c), 0);
   // Les colonnes par bâtiment sautent en mode compact ; les deux colonnes de
   // prix, quand elles existent, doivent alors être comblées sur les lignes qui
   // ne les remplissent pas, sinon le tableau se décale.
@@ -161,6 +179,19 @@ export default function ReleveCollecte({ date, lots, avecPrix = false, compact =
         <span className="tf-cardtitle">Œufs collectés · {lots.map((l) => l.id).join(" + ")}</span>
         <span className="tf-tag">{date === today() ? "AUJOURD'HUI" : dLabel(date).toUpperCase()}</span>
       </div>
+
+      {/* À quel tarif regarder la collecte. Le prix de base d'abord — c'est
+          celui du comptoir — puis les clients qui ont négocié le leur. */}
+      {avecPrix && negociants.length > 0 && (
+        <div className="tf-chips">
+          <button className="tf-chip" data-on={!tarifClient ? 1 : 0}
+            onClick={() => setTarifClient(null)}>Prix de base</button>
+          {negociants.map((c) => (
+            <button key={c.nom} className="tf-chip" data-on={tarifClient === c.nom ? 1 : 0}
+              onClick={() => setTarifClient(c.nom)}>{c.nom}</button>
+          ))}
+        </div>
+      )}
       {/* Tous les calibres sont listés, même à zéro : à position fixe d'un
           jour sur l'autre, un calibre oublié se repère d'un coup d'œil. */}
       <div className="tf-releve-cadre">
@@ -187,8 +218,8 @@ export default function ReleveCollecte({ date, lots, avecPrix = false, compact =
                   <td>{fmt(total)}</td>
                   {avecPrix && (
                     <>
-                      <td>{fmt(prix[c] ?? 0)} Ar</td>
-                      <td>{fmt(total * (prix[c] ?? 0))}</td>
+                      <td>{fmt(prixDe(c))} Ar</td>
+                      <td>{fmt(total * prixDe(c))}</td>
                     </>
                   )}
                 </tr>
@@ -267,15 +298,18 @@ export default function ReleveCollecte({ date, lots, avecPrix = false, compact =
         <span className="tf-live-n">{fmt(avecPrix ? valeurTotale : totalGeneral)}</span>
         <span className="tf-live-l">
           {avecPrix
-            ? `Ar — valeur de ${fmt(totalGeneral)} œufs collectés, au prix de base`
+            ? `Ar — valeur de ${fmt(totalGeneral)} œufs collectés, ` +
+              (choisi ? `au tarif ${choisi.nom}` : "au prix de base")
             : "œufs déjà enregistrés, tous bâtiments confondus"}
         </span>
       </div>
       {avecPrix && (
         <p className="tf-note">
-          Une simulation, pas une recette : c'est ce que vaudrait la collecte vendue au
-          prix de base. Les clients à tarif négocié paient autre chose, et tout ne part
-          pas le jour même.
+          Une simulation, pas une recette : c'est ce que vaudrait toute la collecte vendue
+          à ce tarif-là, et tout ne part pas le jour même chez un seul client.
+          {choisi
+            ? ` Les calibres que ${choisi.nom} n'a pas négociés restent au prix de base.`
+            : " Choisis un client pour voir la même collecte à son tarif."}
         </p>
       )}
       {enAttente && (

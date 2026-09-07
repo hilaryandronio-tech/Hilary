@@ -4,6 +4,7 @@ import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
 import { today } from "../components/format";
 import { useLotsEnPonte } from "../lib/useLotsEnPonte";
+import { useClients } from "../lib/useClients";
 
 // Le relevé de la magasinière, consulté depuis le point de vente : savoir ce
 // qui est rentré aujourd'hui, calibre par calibre, avant de vendre. Écran de
@@ -12,6 +13,7 @@ import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 // magasinière et à la direction.
 export default function Collecte() {
   const lots = useLotsEnPonte();
+  const clients = useClients();
   const [date, setDate] = useState(today());
 
   return (
@@ -29,7 +31,7 @@ export default function Collecte() {
         {/* Le prix n'est affiché que du côté vente : la magasinière saisit des
             œufs, pas des ariary, et son écran n'a pas à porter la valeur de
             ce qu'elle compte. */}
-        <ReleveCollecte date={date} lots={lots} avecPrix />
+        <ReleveCollecte date={date} lots={lots} clients={clients} avecPrix />
       </main>
     </div>
   );
