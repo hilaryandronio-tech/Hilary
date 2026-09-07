@@ -57,7 +57,7 @@ export const MOTS = {
     arrete: "Arrêté à la somme de :",
     prixUnit: "Prix unitaire (MGA)", montant: "Montant (MGA)", total: "Total",
     conditions: (j) => `Condition de paiement: ${String(j).padStart(2, "0")} jours à date de facture`,
-    comptant: "Condition de paiement: à réception",
+    comptant: "Condition de paiement: Payé comptant",
     banque: "Numéro de compte bancaire :", mvola: "Mvola :", titulaire: "Nom :",
     gerant: "Gérant", merci: "Merci pour votre confiance.",
     oeufs: "Oeufs", paquet: (n) => `Oeufs x${n}`,
