@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { etatFile, listerEchecs, oublierEchec, onQueueChange, rejouerEchecs } from "../lib/offlineQueue";
-import { dLabel } from "./format";
+import { dLabel, fmt } from "./format";
 
 // Ce que la file d'attente a dans le ventre, affiché dans l'en-tête. Sans ça,
 // une saisie refusée par Supabase ne se voit nulle part : l'écran affiche
@@ -17,10 +17,22 @@ const NOMS_TABLES = {
   parametres: "Paramètre",
 };
 
+// Le nom de la table et la date ne suffisaient pas à décider. Devant « Vente
+// — dim. 06 sept. », personne ne peut dire s'il s'agit d'une livraison de
+// 400 000 Ar à ressaisir ou d'un doublon à jeter, et le bouton d'à côté
+// efface définitivement. On montre donc ce qu'il y a dedans.
 function resume(echec) {
-  const ligne = Array.isArray(echec.payload) ? echec.payload[0] : echec.payload;
+  const lignes = [].concat(echec.payload ?? []);
+  const premiere = lignes[0] ?? {};
   const nom = NOMS_TABLES[echec.table] ?? echec.table;
-  return ligne?.date ? `${nom} — ${dLabel(ligne.date)}` : nom;
+  const bouts = [];
+  if (premiere.date) bouts.push(dLabel(premiere.date));
+  if (premiere.montant != null) bouts.push(`${fmt(premiere.montant)} Ar`);
+  // Un détail de vente ou de ponte porte plusieurs lignes de calibre : c'est
+  // le total qui parle, pas la première.
+  const oeufs = lignes.reduce((s, l) => s + (l?.oeufs ?? 0), 0);
+  if (oeufs) bouts.push(`${fmt(oeufs)} œufs`);
+  return bouts.length ? `${nom} — ${bouts.join(" · ")}` : nom;
 }
 
 export default function EtatSync() {
