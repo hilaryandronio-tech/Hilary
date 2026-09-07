@@ -7,7 +7,7 @@
 --  docs/30 joint le carnet à la table des clients sur le nom, en jointure
 --  interne. Le fichier le dit lui-même : « sans eux la jointure sur le nom
 --  laisserait tomber leurs lignes, en silence ». Un nom du carnet absent
---  de , ou écrit autrement, et toutes ses livraisons passent à la
+--  de la table clients, ou écrit autrement, et toutes ses livraisons passent à la
 --  trappe sans la moindre erreur.
 --
 --  J'ai comparé le carnet aux noms créés par les fichiers docs : un seul
