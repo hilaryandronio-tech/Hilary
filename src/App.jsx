@@ -9,6 +9,7 @@ import Suivi from "./screens/Suivi";
 import Commandes from "./screens/Commandes";
 import Journal from "./screens/Journal";
 import PointVente from "./screens/PointVente";
+import VentesJour from "./screens/VentesJour";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
 import Direction from "./screens/Direction";
@@ -57,6 +58,9 @@ export default function App() {
       <Route path="/vente" element={<RoutePrivee roles={["point_vente"]}><PointVente /></RoutePrivee>} />
       {/* Le relevé de collecte en lecture, pour vendre en sachant ce qui est rentré. */}
       <Route path="/collecte" element={<RoutePrivee roles={["point_vente"]}><Collecte /></RoutePrivee>} />
+      {/* Ce qui est sorti les jours précédents, avec le calibre et le prix —
+          la caisse ne montre que la journée en cours. */}
+      <Route path="/ventes-jour" element={<RoutePrivee roles={["point_vente"]}><VentesJour /></RoutePrivee>} />
       {/* Ce qui est promis par Facebook et WhatsApp, à livrer plus tard. */}
       <Route path="/commandes" element={<RoutePrivee roles={["point_vente"]}><Commandes /></RoutePrivee>} />
       <Route path="/creances" element={<RoutePrivee roles={["point_vente"]}><Creances /></RoutePrivee>} />

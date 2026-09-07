@@ -17,6 +17,7 @@ const ECRANS = {
   magasiniere: [{ to: "/magasin", l: "Ponte" }],
   point_vente: [
     { to: "/vente", l: "Caisse" },
+    { to: "/ventes-jour", l: "Ventes" },
     { to: "/commandes", l: "Commandes" },
     { to: "/collecte", l: "Ponte" },
     { to: "/creances", l: "Créances" },
@@ -29,6 +30,7 @@ const ECRANS = {
     { to: "/suivi", l: "Suivi" },
     { to: "/magasin", l: "Ponte" },
     { to: "/vente", l: "Caisse" },
+    { to: "/ventes-jour", l: "Ventes" },
     { to: "/commandes", l: "Commandes" },
     { to: "/creances", l: "Créances" },
     { to: "/clients", l: "Clients" },
