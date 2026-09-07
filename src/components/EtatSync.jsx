@@ -81,6 +81,18 @@ export default function EtatSync() {
               Supabase a refusé ces saisies. Elles ne bloquent plus les suivantes, mais
               elles ne sont pas dans les comptes tant qu'elles sont ici.
             </p>
+            {/* « Droits insuffisants » se lit comme une erreur de compte, et
+                c'en est rarement une : le plus souvent la session avait
+                expiré au moment de l'envoi, et le serveur a vu passer une
+                requête anonyme. Réessayer une fois reconnecté suffit. Sans
+                cette phrase, on efface une vraie vente en croyant qu'elle
+                sera toujours refusée. */}
+            <p className="tf-note">
+              « Droits insuffisants » signifie le plus souvent que la session avait expiré
+              quand la saisie est partie, pas que le compte est en cause. Clique d'abord
+              sur <b>Tout réessayer</b> : maintenant que tu es connecté, elle passera.
+              Ne supprime que ce que tu retrouves déjà enregistré ailleurs.
+            </p>
             <div className="tf-echecs">
               {echecs.map((echec) => (
                 <div className="tf-echec" key={echec.id}>
