@@ -5,9 +5,15 @@
 --
 --  Cinq clients règlent à terme et non à la livraison. Leur facture doit
 --  l'annoncer : « Condition de paiement: 30 jours à date de facture »
---  plutôt que « Payé comptant ». Jusqu'ici seuls Leader Price et Mercy
---  Ships portaient un délai (docs/24) ; les autres passaient au comptant
---  faute d'avoir été renseignés.
+--  plutôt que « Payé comptant ». Calypso, Masteva et Côté cour passaient
+--  au comptant faute d'avoir été renseignés.
+--
+--  MadaRest est un cas à part : docs/24 lui avait posé cinq jours, relevés
+--  sur sa facture du 27 août. Le gérant donne dix. C'est lui qui tranche,
+--  la facture d'août portait l'ancien délai.
+--
+--  Leader Price est déjà à trente depuis docs/24 ; la ligne le confirme
+--  sans le changer.
 --
 --  Ce champ ne fait qu'écrire une mention sur la facture. Il ne met pas la
 --  vente à crédit — c'est la caisse qui le décide, livraison par livraison,
