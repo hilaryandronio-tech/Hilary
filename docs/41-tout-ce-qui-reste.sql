@@ -1,11 +1,11 @@
 -- =====================================================================
---  TAMA FERME — Les six migrations en attente, en une seule passe
+--  TAMA FERME — Les migrations en attente, en une seule passe
 --
 --  À exécuter dans Supabase > SQL Editor. Rejouable, et sans effet sur ce
 --  qui a déjà été passé : chaque instruction reprise ici est idempotente.
 --
---  Ce fichier n'apporte rien de neuf. Il rejoue docs/34 à docs/40 dans
---  l'ordre, pour n'avoir qu'un seul copier-coller à faire au lieu de six.
+--  Ce fichier n'apporte rien de neuf. Il rejoue docs/34 à docs/42 dans
+--  l'ordre, pour n'avoir qu'un seul copier-coller à faire au lieu de sept.
 --  Les fichiers d'origine gardent les explications ; celui-ci ne garde
 --  que les instructions.
 --
@@ -17,6 +17,7 @@
 --    38  le calibre de la vente du 20 août, M2 corrigé en L2
 --    39  les mentions de facture de Côté cour
 --    40  les mentions de facture de La braise
+--    42  les mentions de facture de Masteva
 --
 --  Le contrôle est en fin de fichier : dans l'éditeur Supabase, seul le
 --  résultat de la dernière requête s'affiche.
@@ -128,8 +129,16 @@ update clients set
 where nom = 'La braise';
 
 
+-- ---------------------------------------------------------------- 42 --
+update clients set
+  adresse       = E'Salazamay\nToamasina 501, Madagascar',
+  telephone_fac = '+261320704309',
+  conditionnement = 1
+where nom = 'Masteva';
+
+
 -- =====================================================================
---  Contrôle unique. Sept lignes, toutes à « ok ».
+--  Contrôle unique. Huit lignes, toutes à « ok ».
 -- =====================================================================
 
 select * from (
@@ -175,5 +184,11 @@ select * from (
   select 7, 'Noms imprimes distincts',
          case when (select count(distinct nom_facture) from clients
                     where nom in ('La braise','Côté cour')) = 2
+              then 'ok' else 'A REVOIR' end
+  union all
+  select 8, 'Masteva : adresse posee, facturation a l oeuf',
+         case when exists (select 1 from clients
+                           where nom = 'Masteva' and conditionnement = 1
+                             and adresse is not null)
               then 'ok' else 'A REVOIR' end
 ) t order by n;
