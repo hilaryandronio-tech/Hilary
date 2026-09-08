@@ -161,9 +161,13 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   // Le navigateur nomme le PDF d'après le titre de la page. Sans ça, chaque
   // facture enregistrée s'appelait « Tama Ferme — Gestion.pdf » et il fallait
   // les renommer une par une avant de les envoyer.
+  // Le nom du fichier prend le nom court, pas celui de la facture :
+  // « DISTRIBUTION LEADER PRICE S.A.R.L ENTREPOT - Gestion des articles »
+  // est juste sur le document et impossible à retrouver dans un dossier.
+  const nomCourt = client?.nom || nomImprime;
   const nomFichier = periode
-    ? `Facture ${nomImprime} du ${periode.du} au ${periode.au}`
-    : `${numeroF} ${nomImprime}`;
+    ? `Facture ${nomCourt} du ${periode.du} au ${periode.au}`
+    : `${numeroF} ${nomCourt}`;
   useEffect(() => {
     const avant = document.title;
     document.title = nomFichier;
