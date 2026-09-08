@@ -74,7 +74,7 @@ export default function Clients() {
     const [debut, fin] = bornesMois(mois);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, created_at, numero_commande, numero_facture, montant, credit, vente_lignes(calibre, oeufs, prix_unit), reglements(date, montant), commandes(numero)")
+      .select("id, date, created_at, numero_commande, numero_facture, montant, credit, vente_lignes(calibre, oeufs, prix_unit, conditionnement), reglements(date, montant), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", debut)
       .lte("date", fin)
@@ -141,7 +141,7 @@ export default function Clients() {
     setCherche(true);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, numero_commande, numero_facture, vente_lignes(calibre, oeufs, prix_unit), commandes(numero)")
+      .select("id, date, numero_commande, numero_facture, vente_lignes(calibre, oeufs, prix_unit, conditionnement), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", semaine.du)
       .lte("date", semaine.au)
@@ -271,9 +271,14 @@ export default function Clients() {
               )}
               {l.lignes.length > 0 ? (
                 <div className="tf-ticket">
+                  {/* Deux barquettes du même calibre font deux lignes depuis
+                      docs/56 : la clé et le libellé doivent les distinguer. */}
                   {l.lignes.map((ligne) => (
-                    <div className="tf-ticket-row" key={ligne.calibre}>
-                      <span>{ligne.calibre === "CASSE" ? "Cassés" : ligne.calibre}</span>
+                    <div className="tf-ticket-row" key={`${ligne.calibre}-${ligne.conditionnement ?? 0}`}>
+                      <span>
+                        {ligne.calibre === "CASSE" ? "Cassés" : ligne.calibre}
+                        {ligne.conditionnement > 1 ? ` · x${ligne.conditionnement}` : ""}
+                      </span>
                       <span>{fmt(ligne.oeufs)} œufs × {fmt(ligne.prix_unit)} Ar</span>
                     </div>
                   ))}

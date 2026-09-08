@@ -193,9 +193,14 @@ export default function Commandes() {
       payload: { id: venteId, date: jour, canal: "client", client_id: cl.id, montant: total, credit: false, auteur: profil?.id },
     });
     await enqueue({
-      table: "vente_lignes", conflict: "vente_id,calibre", groupe: venteId,
+      table: "vente_lignes", conflict: "vente_id,calibre,conditionnement", groupe: venteId,
+      // Une commande prise à l'avance ne dit pas l'emballage : elle part
+      // dans celui du client par défaut. Un client qui en utilise plusieurs
+      // — Leader Price et ses barquettes — se saisit à la caisse, où le
+      // partage se fait.
       payload: lignes.map((l) => ({
         vente_id: venteId, calibre: l.calibre, oeufs: l.oeufs,
+        conditionnement: cl.conditionnement > 0 ? cl.conditionnement : 1,
         prix_unit: cl.tarifs?.[l.calibre] ?? prixBase[l.calibre],
       })),
     });

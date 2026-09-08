@@ -77,9 +77,19 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   usePolicesFacture();
   const langue = client?.langue === "en" ? "en" : "fr";
   const m = MOTS[langue];
+  // L'emballage par défaut du client, pour les lignes anciennes qui n'en
+  // portent pas. Depuis docs/56 chaque ligne a le sien : une facture
+  // réimprimée garde la présentation du jour de la livraison, et non celle
+  // du jour où on l'imprime.
   const paquet = client?.conditionnement > 0 ? client.conditionnement : 30;
+  const paquetDe = (l) => (l.conditionnement > 0 ? l.conditionnement : paquet);
+  const codeDe = (l) => FERME.codesArticle[paquetDe(l)] ?? "";
   const lignes = periode ? [] : (vente.lignes ?? []);
-  const plusieurs = lignes.length > 1;
+  // Le calibre n'est rappelé que si la facture en porte plusieurs. Deux
+  // barquettes du même calibre se distinguent déjà par leur désignation —
+  // « Oeufs x6 » et « Oeufs x12 » — et y ajouter « — M1 » deux fois
+  // n'apprendrait rien.
+  const plusieurs = new Set(lignes.map((l) => l.calibre)).size > 1;
 
   // Le prix facturé n'est pas toujours celui qu'encaisse la ferme : Mercy
   // Ships paie 1 000 Ar l'œuf, dont 200 vont à l'intermédiaire qui a trouvé le
@@ -92,16 +102,19 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
     // L'application compte en œufs ; la facture compte en paquets. Une
     // quantité qui ne tombe pas juste est affichée telle quelle plutôt
     // qu'arrondie : mieux vaut un « 60,5 » qui fait tiquer qu'un total faux.
-    const quantite = l.oeufs / paquet;
+    const paquetLigne = paquetDe(l);
+    const quantite = l.oeufs / paquetLigne;
     return {
+      cle: `${l.calibre}-${paquetLigne}`,
       calibre: l.calibre,
+      code: codeDe(l),
       // Le calibre n'apparaît pas sur les modèles — une livraison n'y porte
       // qu'une seule sorte d'œuf. Dès qu'il y en a plusieurs, il faut bien
       // distinguer les lignes.
-      designation: (paquet > 1 ? m.paquet(paquet) : m.oeufs) +
+      designation: (paquetLigne > 1 ? m.paquet(paquetLigne) : m.oeufs) +
         (plusieurs ? ` — ${l.calibre === "CASSE" ? "cassés" : l.calibre}` : ""),
       quantite: Number.isInteger(quantite) ? quantite : quantite.toFixed(2).replace(".", ","),
-      prixUnit: prixFacture(l) * paquet,
+      prixUnit: prixFacture(l) * paquetLigne,
       montant: l.oeufs * prixFacture(l),
     };
   });
@@ -111,11 +124,11 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   // plusieurs lignes : le modèle n'a qu'un prix unitaire par ligne.
   const renduesPeriode = (periode?.ventes ?? []).flatMap((v) =>
     (v.lignes ?? []).map((l) => ({
-      cle: `${v.id}-${l.calibre}`,
+      cle: `${v.id}-${l.calibre}-${paquetDe(l)}`,
       date: dateCourte(v.date),
       commande: v.commandes?.[0]?.numero || v.numero_commande || "",
-      quantite: l.oeufs / paquet,
-      prixUnit: prixFacture(l) * paquet,
+      quantite: l.oeufs / paquetDe(l),
+      prixUnit: prixFacture(l) * paquetDe(l),
       montant: l.oeufs * prixFacture(l),
     }))
   );
@@ -238,9 +251,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
                 </tr>
               ))}
               {!periode && rendues.map((l) => (
-                <tr key={l.calibre}>
+                <tr key={l.cle}>
                   <td>{l.designation}</td>
-                  {complet && <td>{FERME.codeArticle}</td>}
+                  {complet && <td>{l.code}</td>}
                   <td>{l.quantite}</td>
                   <td>{fmt(l.prixUnit)}{complet ? "" : "Ar"}</td>
                   <td className={complet ? undefined : "tf-facture-gras"}>{fmt(l.montant)}</td>

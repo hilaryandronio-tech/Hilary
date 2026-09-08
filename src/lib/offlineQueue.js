@@ -98,7 +98,7 @@ export async function oublierEchec(id) {
 
 /**
  * Queue a write.
- *  - kind "upsert" (with `conflict`, e.g. "id" or "vente_id,calibre") — the
+ *  - kind "upsert" (with `conflict`, e.g. "id" or "vente_id,calibre,conditionnement") — the
  *    default shape for anything the app inserts, so a replay is harmless.
  *  - kind "update" — targets existing rows via `match`.
  *  - kind "delete" — supprime les lignes désignées par `match`. Rejouable

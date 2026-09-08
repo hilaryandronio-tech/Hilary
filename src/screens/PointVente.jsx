@@ -26,6 +26,19 @@ const CALIBRES_DETAIL = [...CALIBRES, "CASSE"];
 const CALIBRES_CLIENT = CALIBRES_DETAIL;
 const libelle = (c) => (c === "CASSE" ? "Cassés" : c);
 
+// Les emballages qu'un client utilise, quand il en a plusieurs. Leader Price
+// prend de la barquette de six et de la barquette de douze sur la même
+// livraison, et sa facture les distingue ligne par ligne. Chez lui la caisse
+// compte donc en barquettes. Tous les autres n'ont qu'un emballage et se
+// saisissent en œufs, comme avant.
+const emballages = (cl) =>
+  cl?.conditionnements?.length ? [...cl.conditionnements].sort((a, b) => a - b) : null;
+
+// La clé du brouillon. Sans la taille, les barquettes de six écraseraient
+// celles de douze du même calibre.
+const cleVente = (cl, calibre, taille) =>
+  taille ? `v_${slug(cl.nom)}_${calibre}_x${taille}` : `v_${slug(cl.nom)}_${calibre}`;
+
 export default function PointVente() {
   const { profil } = useAuth();
   const clients = useClients();
@@ -36,12 +49,24 @@ export default function PointVente() {
   const [draft, setDraft] = useState({});
   const [pad, setPad] = useState(null);
   const [flash, setFlash] = useState("");
+  // L'emballage en cours de saisie, chez un client qui en a plusieurs. Les
+  // quantités déjà tapées dans l'autre restent au brouillon : on remplit la
+  // x6, on bascule, on remplit la x12, et la vente part avec les deux.
+  const [barquette, setBarquette] = useState(null);
   const peutModifierPrix = profil?.role === "direction";
 
   // Le client sélectionné doit rester dans la liste chargée depuis Supabase.
   useEffect(() => {
     setClientKey((k) => (clients.some((c) => slug(c.nom) === k) ? k : slug(clients[0].nom)));
   }, [clients]);
+
+  // Changer de client, c'est changer d'emballages : on repart sur le plus
+  // petit, et sur rien du tout chez un client qui n'en a qu'un.
+  useEffect(() => {
+    const cl = clients.find((c) => slug(c.nom) === clientKey);
+    const tailles = emballages(cl);
+    setBarquette(tailles ? tailles[0] : null);
+  }, [clientKey, clients]);
 
   useEffect(() => {
     lectureCachee("calibres", () => supabase.from("calibres").select("code, prix_base"))
@@ -77,7 +102,17 @@ export default function PointVente() {
   const paye = (k) => draft[`pay_${k}`] !== "credit";
 
   const client = clients.find((c) => slug(c.nom) === clientKey) ?? clients[0];
-  const venteClient = (cl, c) => val(`v_${slug(cl.nom)}_${c}`) * prixClient(cl, c);
+
+  // Le nombre d'œufs saisis pour un calibre, tous emballages confondus. Une
+  // quantité en barquettes se multiplie par la taille : la base compte en
+  // œufs, et le stock avec elle.
+  const oeufsClient = (cl, c) => {
+    const tailles = emballages(cl);
+    if (!tailles) return val(cleVente(cl, c));
+    return tailles.reduce((s, t) => s + val(cleVente(cl, c, t)) * t, 0);
+  };
+  const venteClient = (cl, c) => oeufsClient(cl, c) * prixClient(cl, c);
+  const emballagesClient = emballages(client);
   const totalClients = useMemo(
     () => clients.reduce((s, cl) => s + CALIBRES_CLIENT.reduce((t, c) => t + venteClient(cl, c), 0), 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,8 +157,29 @@ export default function PointVente() {
     const auteur = profil?.id;
 
     for (const cl of clients) {
-      const lignesCalibre = CALIBRES_CLIENT.filter((c) => val(`v_${slug(cl.nom)}_${c}`) > 0);
-      if (!lignesCalibre.length) continue;
+      // Une ligne par calibre et par emballage : c'est ce que la facture
+      // imprime, et c'est maintenant ce que la base sait ranger.
+      const tailles = emballages(cl);
+      const lignesVente = [];
+      for (const c of CALIBRES_CLIENT) {
+        if (tailles) {
+          for (const t of tailles) {
+            const q = val(cleVente(cl, c, t));
+            if (q > 0) lignesVente.push({ calibre: c, conditionnement: t, oeufs: q * t });
+          }
+        } else {
+          const q = val(cleVente(cl, c));
+          if (q > 0) {
+            lignesVente.push({
+              calibre: c,
+              conditionnement: cl.conditionnement > 0 ? cl.conditionnement : 1,
+              oeufs: q,
+            });
+          }
+        }
+      }
+      if (!lignesVente.length) continue;
+      const lignesCalibre = [...new Set(lignesVente.map((l) => l.calibre))];
       if (!cl.id) {
         setFlash(`${cl.nom} : client non synchronisé, vente non enregistrée. Réessaie une fois en ligne.`);
         continue;
@@ -137,7 +193,7 @@ export default function PointVente() {
         continue;
       }
       const venteId = uuid();
-      const montant = lignesCalibre.reduce((s, c) => s + venteClient(cl, c), 0);
+      const montant = lignesVente.reduce((s, l) => s + l.oeufs * prixClient(cl, l.calibre), 0);
       await enqueue({
         table: "ventes",
         conflict: "id",
@@ -146,13 +202,14 @@ export default function PointVente() {
       });
       await enqueue({
         table: "vente_lignes",
-        conflict: "vente_id,calibre",
+        conflict: "vente_id,calibre,conditionnement",
         groupe: venteId,
-        payload: lignesCalibre.map((c) => ({
+        payload: lignesVente.map((l) => ({
           vente_id: venteId,
-          calibre: c,
-          oeufs: val(`v_${slug(cl.nom)}_${c}`),
-          prix_unit: prixClient(cl, c),
+          calibre: l.calibre,
+          conditionnement: l.conditionnement,
+          oeufs: l.oeufs,
+          prix_unit: prixClient(cl, l.calibre),
         })),
       });
     }
@@ -171,11 +228,13 @@ export default function PointVente() {
       });
       await enqueue({
         table: "vente_lignes",
-        conflict: "vente_id,calibre",
+        conflict: "vente_id,calibre,conditionnement",
         groupe: venteId,
+        // Le comptoir vend à l'œuf : pas d'emballage, donc 1.
         payload: lignesDetail.map((c) => ({
           vente_id: venteId,
           calibre: c,
+          conditionnement: 1,
           oeufs: val("d" + c),
           prix_unit: prixBase[c],
         })),
@@ -249,7 +308,7 @@ export default function PointVente() {
             clients={clients}
             selection={client?.nom}
             onSelect={(nom) => setClientKey(slug(nom))}
-            marque={(cl) => CALIBRES_CLIENT.some((c) => val(`v_${slug(cl.nom)}_${c}`))}
+            marque={(cl) => CALIBRES_CLIENT.some((c) => oeufsClient(cl, c) > 0)}
           />
           {/* Sans identifiant Supabase, la commande sera refusée à
               l'enregistrement. Le dire ici, en clair et en permanence : le
@@ -269,21 +328,46 @@ export default function PointVente() {
               <div className="tf-destinataire">
                 Commande de <strong>{client.nom}</strong>
               </div>
+              {/* Un client à plusieurs emballages se saisit barquette par
+                  barquette : on remplit la x6, on bascule, on remplit la
+                  x12. Le point signale l'emballage déjà entamé, pour ne pas
+                  oublier celui qu'on a quitté. */}
+              {emballagesClient && (
+                <div className="tf-chips">
+                  {emballagesClient.map((t) => {
+                    const entame = CALIBRES_CLIENT.some((c) => val(cleVente(client, c, t)) > 0);
+                    return (
+                      <button key={t} className="tf-chip" data-on={barquette === t ? 1 : 0}
+                        onClick={() => setBarquette(t)}>
+                        Barquette x{t}{entame ? " ·" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="tf-grid4">
                 {CALIBRES_CLIENT.map((c) => {
-                  const n = val(`v_${slug(client.nom)}_${c}`);
+                  const taille = emballagesClient ? barquette : null;
+                  const cle = cleVente(client, c, taille);
+                  const n = val(cle);
+                  const prix = prixClient(client, c);
+                  // Le prix d'une barquette, c'est celui de l'œuf multiplié
+                  // par ce qu'elle contient. C'est ce que porte la facture.
+                  const parUnite = taille ? prix * taille : prix;
+                  const unite = taille ? "barquettes" : "œufs";
                   // Le prix va dans la ligne déjà réservée sous la valeur, pas
                   // dans le titre : un libellé long passait à la ligne et
                   // cassait l'alignement des rangées.
                   return (
                     <NumField key={c} label={c} sous={POIDS[c]}
-                      unit="œufs" value={n}
-                      detail={n ? `${fmt(n * prixClient(client, c))} Ar` : `${prixClient(client, c)} Ar/œuf`}
+                      unit={unite} value={n}
+                      detail={n ? `${fmt(n * parUnite)} Ar` : `${fmt(parUnite)} Ar/${taille ? "x" + taille : "œuf"}`}
                       onOpen={client.id
-                        ? () => open(`v_${slug(client.nom)}_${c}`,
-                            `${client.nom} — ${c} (${POIDS[c]}) à ${prixClient(client, c)} Ar`, "œufs")
+                        ? () => open(cle,
+                            `${client.nom} — ${c} (${POIDS[c]})${taille ? ` en x${taille}` : ""} à ${fmt(parUnite)} Ar`,
+                            unite)
                         : undefined}
-                      onChange={client.id ? (v) => poser(`v_${slug(client.nom)}_${c}`, v) : undefined} />
+                      onChange={client.id ? (v) => poser(cle, v) : undefined} />
                   );
                 })}
               </div>

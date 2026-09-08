@@ -13,9 +13,14 @@ export const FERME = {
   stat: "01462 31 20250 011458",
   // Le nom en capitales est en gras sur les factures, le prénom ne l'est pas.
   gerant: { nom: "HILARY JAHARISON", suite: "Andronio", telephone: "+261 34 07 239 20" },
-  // Même référence sur les deux factures : c'est un code de la ferme, pas
-  // du client.
-  codeArticle: "67218",
+  // Le Code M désigne l'emballage, pas le client : la facture Leader Price
+  // du 6 août porte les deux, 67217 pour la barquette de six et 67218 pour
+  // celle de douze. Le second était pris pour une constante de la ferme
+  // parce que les deux premières factures relevées n'avaient que lui.
+  //
+  // Un emballage absent d'ici sort sans code — mieux qu'un code faux sur
+  // une pièce comptable.
+  codesArticle: { 6: "67217", 12: "67218" },
 };
 
 // L'adresse est traduite sur la facture anglaise — « En face » / « Opposite ».
