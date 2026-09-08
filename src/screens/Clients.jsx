@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "../components/Header";
 import { fmt, dLabel, today } from "../components/format";
 import { supabase } from "../lib/supabaseClient";
-import { onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
+import { enqueue, onQueueChange, operationsEnAttente } from "../lib/offlineQueue";
 import AlerteEchecs from "../components/AlerteEchecs";
 import ChoixClient from "../components/ChoixClient";
 import Facture from "../components/Facture";
@@ -160,6 +160,40 @@ export default function Clients() {
     });
   };
 
+  // Une faute de clic sur « Payé / À crédit » à la caisse ne se rattrapait
+  // que par le SQL. Supprimer puis ressaisir n'est pas une réponse : le
+  // compteur donnerait un nouveau numéro de bon, et le numéro de facture,
+  // tiré de l'heure d'enregistrement, changerait avec lui. Le drapeau se
+  // corrige sur place, tout le reste intact.
+  const basculerCredit = async (l) => {
+    const versCredit = !l.credit;
+    if (!versCredit && totalRegle(l) > 0) {
+      window.alert(
+        "Cette livraison porte un encaissement. La repasser en comptant la ferait " +
+        "disparaître des créances alors que l'argent y est rattaché.\n\n" +
+        "Annule d'abord l'encaissement depuis l'écran Créances."
+      );
+      return;
+    }
+    const ok = window.confirm(
+      versCredit
+        ? `Passer à crédit la livraison du ${dLabel(l.date)} — ${fmt(l.montant)} Ar ?\n\n` +
+          "Elle quittera les recettes encaissées et rejoindra les créances à recouvrer."
+        : `Marquer payée comptant la livraison du ${dLabel(l.date)} — ${fmt(l.montant)} Ar ?\n\n` +
+          "Elle disparaîtra des créances."
+    );
+    if (!ok) return;
+    await enqueue({
+      table: "ventes", kind: "update",
+      payload: { credit: versCredit }, match: { id: l.id },
+    });
+    // La liste se relit quand la file bouge, mais hors ligne la lecture du
+    // serveur échoue et la carte resterait dans son ancien état — on
+    // croirait le bouton sans effet. On la bascule tout de suite ; le
+    // serveur confirmera.
+    setServeur((v) => v.map((x) => (x.id === l.id ? { ...x, credit: versCredit } : x)));
+  };
+
   const livraisons = useMemo(
     () => [...file, ...serveur].sort((a, b) => b.date.localeCompare(a.date)),
     [file, serveur]
@@ -264,9 +298,20 @@ export default function Clients() {
               <div className="tf-livraison-s" data-alerte={s.alerte ? 1 : 0}>{s.texte}</div>
               {/* Une livraison encore en file n'a ni heure d'enregistrement ni
                   numéro : sa facture serait sans référence. */}
-              {!l.enAttente && l.lignes.length > 0 && (
+              {!l.enAttente && (l.lignes.length > 0 || totalRegle(l) === 0) && (
                 <div className="tf-due-actions">
-                  <button className="tf-due-btn" onClick={() => setAFacturer(l)}>Facture</button>
+                  {l.lignes.length > 0 && (
+                    <button className="tf-due-btn" onClick={() => setAFacturer(l)}>Facture</button>
+                  )}
+                  {/* Le bouton disparaît dès qu'un encaissement est saisi :
+                      basculer une livraison déjà réglée demanderait d'abord
+                      d'annuler le règlement, et l'écran Créances est fait
+                      pour ça. */}
+                  {totalRegle(l) === 0 && (
+                    <button className="tf-due-btn" onClick={() => basculerCredit(l)}>
+                      {l.credit ? "Marquer payée" : "Passer à crédit"}
+                    </button>
+                  )}
                 </div>
               )}
               {l.lignes.length > 0 ? (
