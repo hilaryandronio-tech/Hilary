@@ -371,7 +371,12 @@ export default function PointVente() {
                   // Le prix d'une barquette, c'est celui de l'œuf multiplié
                   // par ce qu'elle contient. C'est ce que porte la facture.
                   const parUnite = taille ? prix * taille : prix;
-                  const unite = taille ? "barquettes" : "œufs";
+                  // L'unité tient dans la case ou elle en chasse le nombre :
+                  // le champ de saisie a `flex:1; min-width:0`, il se comprime
+                  // pour laisser la place à l'unité. « barquettes » ne laissait
+                  // plus rien pour les chiffres tapés. « x6 » dit la même chose
+                  // en deux caractères, et c'est le mot de la facture.
+                  const unite = taille ? "x" + taille : "œufs";
                   // Le prix va dans la ligne déjà réservée sous la valeur, pas
                   // dans le titre : un libellé long passait à la ligne et
                   // cassait l'alignement des rangées.
