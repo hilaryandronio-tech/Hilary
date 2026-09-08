@@ -74,7 +74,7 @@ export default function Clients() {
     const [debut, fin] = bornesMois(mois);
     const { data, error } = await supabase
       .from("ventes")
-      .select("id, date, created_at, numero_commande, numero_facture, montant, credit, vente_lignes(calibre, oeufs, prix_unit, conditionnement), reglements(date, montant), commandes(numero)")
+      .select("id, date, created_at, numero_commande, numero_commande_client, numero_facture, montant, credit, vente_lignes(calibre, oeufs, prix_unit, conditionnement), reglements(date, montant), commandes(numero)")
       .eq("client_id", client.id)
       .gte("date", debut)
       .lte("date", fin)

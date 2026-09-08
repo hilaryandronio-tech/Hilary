@@ -198,7 +198,11 @@ export default function PointVente() {
         table: "ventes",
         conflict: "id",
         groupe: venteId,
-        payload: { id: venteId, date, canal: "client", client_id: cl.id, montant, credit: !paye(slug(cl.nom)), auteur },
+        payload: {
+          id: venteId, date, canal: "client", client_id: cl.id, montant,
+          credit: !paye(slug(cl.nom)), auteur,
+          numero_commande_client: (draft[`bdc_${slug(cl.nom)}`] ?? "").trim() || null,
+        },
       });
       await enqueue({
         table: "vente_lignes",
@@ -328,6 +332,19 @@ export default function PointVente() {
               <div className="tf-destinataire">
                 Commande de <strong>{client.nom}</strong>
               </div>
+              {/* Le bon de commande du client, quand il en émet un. Champ
+                  texte : « BDC210121 » ne se tape pas sur un pavé
+                  numérique. */}
+              {client?.commande_client && (
+                <label className="tf-field">
+                  <span className="tf-label">N° commande du client</span>
+                  <input className="tf-saisie" type="text" inputMode="text"
+                    placeholder="BDC210121"
+                    value={draft[`bdc_${slug(client.nom)}`] ?? ""}
+                    disabled={!client.id}
+                    onChange={(e) => poser(`bdc_${slug(client.nom)}`, e.target.value)} />
+                </label>
+              )}
               {/* Un client à plusieurs emballages se saisit barquette par
                   barquette : on remplit la x6, on bascule, on remplit la
                   x12. Le point signale l'emballage déjà entamé, pour ne pas

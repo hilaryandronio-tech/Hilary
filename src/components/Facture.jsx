@@ -220,6 +220,12 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
               {client?.nif && <p>NIF {client.nif}{client.stat ? ` STAT: ${client.stat}` : ""}</p>}
               {client?.refs_legales && <p className="tf-facture-multi">{client.refs_legales}</p>}
               {client?.telephone_fac && <p>{m.tel} : {client.telephone_fac}</p>}
+              {/* Sa référence à lui, sous ses coordonnées — c'est par elle
+                  que sa comptabilité rapproche la facture de son achat. La
+                  nôtre reste de l'autre côté, sous les nôtres. */}
+              {!periode && vente?.numero_commande_client && (
+                <p>{m.commande}: {vente.numero_commande_client}</p>
+              )}
               {!periode && client?.dates_oeufs && (
                 <>
                   <p className="tf-facture-oeufs">Date de Ponte :<br /><b>{dateLongue(ponte)}</b></p>
