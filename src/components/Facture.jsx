@@ -118,6 +118,14 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
       montant: l.oeufs * prixFacture(l),
     };
   });
+  // La colonne « Code M » ne s'imprime que si une ligne en porte un. Le code
+  // désigne l'emballage, et seules les barquettes de six et de douze en ont
+  // un — c'est-à-dire Leader Price, et lui seul. Ailleurs la colonne était
+  // vide de haut en bas : un en-tête sans contenu sur une pièce comptable.
+  //
+  // Pour en donner un à un autre client, il suffit d'ajouter son emballage
+  // à FERME.codesArticle : la colonne réapparaîtra d'elle-même.
+  const avecCode = rendues.some((l) => l.code);
   const dateCourte = langue === "en" ? dateAnglaise : dateFrancaise;
   // Une facture de période reprend une semaine de livraisons, chacune avec sa
   // date et son bon de commande. Une livraison à plusieurs calibres donne
@@ -244,7 +252,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
               <tr>
                 {periode && <><th>{m.colDate}</th><th>{m.colCommande}</th></>}
                 {!periode && <th>{complet ? m.designation : m.categorie}</th>}
-                {!periode && complet && <th>{m.code}</th>}
+                {!periode && complet && avecCode && <th>{m.code}</th>}
                 <th>{m.quantite}</th>
                 <th>{m.prixUnit}</th>
                 <th>{m.montant}</th>
@@ -263,7 +271,7 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
               {!periode && rendues.map((l) => (
                 <tr key={l.cle}>
                   <td>{l.designation}</td>
-                  {complet && <td>{l.code}</td>}
+                  {complet && avecCode && <td>{l.code}</td>}
                   <td>{l.quantite}</td>
                   <td>{fmt(l.prixUnit)}{complet ? "" : "Ar"}</td>
                   <td className={complet ? undefined : "tf-facture-gras"}>{fmt(l.montant)}</td>
@@ -273,7 +281,9 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
                   ce que le lecteur cherche en premier. */}
               {(
                 <tr className="tf-facture-total">
-                  <td colSpan={periode || complet ? 3 : 2} />
+                  {/* Deux colonnes de moins que le tableau : la ligne de total
+                      n'occupe que « Total » et le montant. */}
+                  <td colSpan={periode || (complet && avecCode) ? 3 : 2} />
                   <td>{m.total}</td>
                   <td>{fmt(total)}</td>
                 </tr>
