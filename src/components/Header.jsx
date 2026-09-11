@@ -13,8 +13,12 @@ const ECRANS = {
   chef_ferme: [
     { to: "/ferme", l: "Ferme" },
     { to: "/suivi", l: "Suivi" },
+    { to: "/comptage", l: "Photo" },
   ],
-  magasiniere: [{ to: "/magasin", l: "Ponte" }],
+  magasiniere: [
+    { to: "/magasin", l: "Ponte" },
+    { to: "/comptage", l: "Photo" },
+  ],
   point_vente: [
     { to: "/vente", l: "Caisse" },
     { to: "/ventes-jour", l: "Ventes" },
@@ -29,6 +33,7 @@ const ECRANS = {
     { to: "/ferme", l: "Ferme" },
     { to: "/suivi", l: "Suivi" },
     { to: "/magasin", l: "Ponte" },
+    { to: "/comptage", l: "Photo" },
     { to: "/vente", l: "Caisse" },
     { to: "/ventes-jour", l: "Ventes" },
     { to: "/commandes", l: "Commandes" },

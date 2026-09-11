@@ -566,3 +566,51 @@
   .tf-facture[data-periode="1"] .tf-facture-merci { margin-top:6px; }
   @page { size:A4; margin:0; }
 }
+
+/* ---- Comptage sur photo -------------------------------------------------
+   La feuille reprend celle du pavé numérique, en plus haute : la photo doit
+   rester assez grande pour qu'on distingue deux œufs voisins au doigt. */
+.tf-compteur { max-height:94vh; overflow-y:auto; }
+.tf-compteur-vide { display:grid; gap:8px; padding:8px 0 4px; }
+/* Le champ fichier natif est illisible et impossible à styler : on garde le
+   bouton de l'application et on cache l'input derrière. */
+.tf-btn-fichier { position:relative; overflow:hidden; text-align:center; cursor:pointer;
+                  display:inline-flex; align-items:center; justify-content:center; }
+.tf-btn-fichier input { position:absolute; inset:0; opacity:0; cursor:pointer; font-size:0; }
+
+.tf-compteur-scene { position:relative; overflow:auto; background:var(--moss);
+                     border:1px solid var(--ink); border-radius:2px;
+                     display:flex; justify-content:center;
+                     max-height:52vh; -webkit-overflow-scrolling:touch; }
+/* touch-action:manipulation retire le délai de 300 ms du double-tap : à cent
+   marques à poser, un tiers de seconde par doigt se sent tout de suite. */
+.tf-compteur-canvas { display:block; flex:0 0 auto; max-width:100%; max-height:52vh;
+                      height:auto; touch-action:manipulation; }
+.tf-compteur-voile { position:absolute; inset:0; display:flex; align-items:center;
+                     justify-content:center; background:rgba(54,37,30,0.62); color:var(--card);
+                     font-family:'IBM Plex Mono',monospace; font-size:12px;
+                     letter-spacing:0.1em; text-transform:uppercase; }
+
+.tf-reglages { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.tf-reglage { display:block; }
+.tf-reglage input { width:100%; margin-top:4px; accent-color:var(--brick); }
+.tf-reglage input:disabled { opacity:0.4; }
+
+.tf-compteur-outils { display:flex; gap:6px; margin-top:10px; overflow-x:auto; padding-bottom:4px; }
+.tf-compteur-outils .tf-role { color:var(--ink); border-color:var(--line); background:var(--field); }
+.tf-compteur-outils .tf-role[data-on="1"] { background:var(--yolk); border-color:var(--ink); }
+
+.tf-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.tf-chip { border:1px solid var(--line); background:var(--field); border-radius:2px;
+           padding:7px 11px; font-family:'IBM Plex Sans Condensed',sans-serif; font-weight:600;
+           font-size:13px; color:var(--ink); cursor:pointer; }
+.tf-chip[data-on="1"] { border-color:var(--ink); background:var(--yolk); }
+.tf-chip:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+
+.tf-compteur-cta { margin-top:12px; padding:0; }
+
+/* Le résultat gardé de côté sur l'écran de comptage, avant report. */
+.tf-compte-resultat { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.tf-compte-n { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:34px;
+               font-variant-numeric:tabular-nums; line-height:1; }
+.tf-compte-l { font-size:12px; color:var(--muted); }

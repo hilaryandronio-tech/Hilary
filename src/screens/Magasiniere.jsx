@@ -5,6 +5,7 @@ import Keypad from "../components/Keypad";
 import DateSelector from "../components/DateSelector";
 import ReleveCollecte from "../components/ReleveCollecte";
 import StockOeufs from "../components/StockOeufs";
+import CompteurImage from "../components/CompteurImage";
 import { fmt, today, dLabel } from "../components/format";
 import { ALV, CALIBRES, POIDS, PRIX_CASSE } from "../data/constants";
 import { enqueue, idStable, operationsEnAttente } from "../lib/offlineQueue";
@@ -22,6 +23,7 @@ export default function Magasiniere() {
   const [flash, setFlash] = useState("");
   const [dejaEnregistre, setDejaEnregistre] = useState(false);
   const [ficheExistante, setFicheExistante] = useState(false);
+  const [photo, setPhoto] = useState(false);
 
   // Le bâtiment sélectionné doit rester dans la liste chargée depuis Supabase :
   // sinon on saisirait sur un bâtiment qui n'est plus en ponte.
@@ -254,6 +256,13 @@ export default function Magasiniere() {
             ))}
           </div>
           <p className="tf-note">Pour compter des œufs hors alvéole complète — ramassage partiel, casier entamé.</p>
+          {/* Le comptage sur photo n'alimente que le détail, jamais les
+              alvéoles pleines : une alvéole pleine fait trente, on n'a pas
+              besoin d'une photo pour le savoir. C'est le casier entamé qui
+              se compte mal à l'œil, et c'est celui-là qu'on photographie. */}
+          <div className="tf-compteur-outils">
+            <button className="tf-role" onClick={() => setPhoto(true)}>Compter sur une photo</button>
+          </div>
         </div>
 
         {/* Trois sorts différents, et un seul est une perte. Les nommer
@@ -299,6 +308,24 @@ export default function Magasiniere() {
       </div>
 
       {flash && <div className="tf-flash">{flash}</div>}
+      {/* Le comptage s'ajoute au calibre choisi au lieu de le remplacer :
+          on photographie souvent deux ou trois casiers entamés de suite, et
+          écraser le précédent obligerait à additionner de tête. */}
+      {photo && (
+        <CompteurImage
+          titre="Œufs sur la photo"
+          aide="Casier à plat, vu du dessus, qui remplit le cadre."
+          cibles={CALIBRES.map((c) => ({ cle: c, label: c }))}
+          libelleValider="Ajouter"
+          onValider={(n, calibre) => {
+            if (!n) return;
+            poser("d" + calibre, val("d" + calibre) + n);
+            setFlash(`${fmt(n)} œufs ajoutés au détail en ${calibre}.`);
+            setTimeout(() => setFlash(""), 2600);
+          }}
+          onFermer={() => setPhoto(false)}
+        />
+      )}
       <Keypad field={pad} onChange={setPadVal} onClose={() => setPad(null)} />
     </div>
   );

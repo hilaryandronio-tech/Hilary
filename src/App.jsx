@@ -4,6 +4,7 @@ import Login from "./screens/Login";
 import ChefFerme from "./screens/ChefFerme";
 import Magasiniere from "./screens/Magasiniere";
 import Collecte from "./screens/Collecte";
+import Comptage from "./screens/Comptage";
 import Clients from "./screens/Clients";
 import Suivi from "./screens/Suivi";
 import Commandes from "./screens/Commandes";
@@ -54,6 +55,9 @@ export default function App() {
       <Route path="/ferme" element={<RoutePrivee roles={["chef_ferme"]}><ChefFerme /></RoutePrivee>} />
       {/* Calendrier vaccinal et traitements — le chef de ferme les exécute. */}
       <Route path="/suivi" element={<RoutePrivee roles={["chef_ferme"]}><Suivi /></RoutePrivee>} />
+      {/* Comptage sur photo — instrument de mesure partagé par la ferme et le
+          magasin, sans écriture propre. */}
+      <Route path="/comptage" element={<RoutePrivee roles={["magasiniere", "chef_ferme"]}><Comptage /></RoutePrivee>} />
       <Route path="/magasin" element={<RoutePrivee roles={["magasiniere"]}><Magasiniere /></RoutePrivee>} />
       <Route path="/vente" element={<RoutePrivee roles={["point_vente"]}><PointVente /></RoutePrivee>} />
       {/* Le relevé de collecte en lecture, pour vendre en sachant ce qui est rentré. */}
