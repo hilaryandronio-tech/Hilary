@@ -27,19 +27,21 @@ export default function Comptage() {
         <p className="tf-eyebrow">Comptage · sur photo</p>
         <h1 className="tf-h1">Compter sur une photo</h1>
         <p className="tf-sub">
-          La photo est analysée sur le téléphone, sans réseau. La détection propose un
-          comptage, tu le corriges au doigt, et c'est ton chiffre qui compte.
+          Tout se passe sur le téléphone, sans réseau. Tu touches chaque forme du doigt,
+          l'application tient le compte et garde les marques.
         </p>
 
         <div className="tf-card">
           <div className="tf-cardhead">
             <span className="tf-cardtitle">Œufs</span>
-            <span className="tf-tag">DÉTECTION AUTOMATIQUE</span>
+            <span className="tf-tag">POINTAGE AU DOIGT</span>
           </div>
           {oeufs == null ? (
             <p className="tf-note">
-              Photographie l'alvéole <strong>bien à plat, du dessus</strong>, en remplissant le cadre.
-              De biais, les œufs du fond deviennent des ovales serrés que la détection confond.
+              Photographie l'alvéole <strong>bien à plat, du dessus</strong>, en remplissant le
+              cadre, puis touche chaque œuf. Le bouton <strong>Détecter</strong> tente le comptage
+              automatique, mais il se trompe lourdement sur les photos de la ferme : il compte le
+              carrelage et les trous vides des alvéoles. Ne le crois pas sans regarder.
             </p>
           ) : (
             <div className="tf-compte-resultat">
@@ -67,7 +69,7 @@ export default function Comptage() {
             <span className="tf-tag">POINTAGE AU DOIGT</span>
           </div>
           <p className="tf-note">
-            Ici la détection automatique est éteinte, et ce n'est pas un oubli. Des poules
+            Ici comme pour les œufs, la détection automatique ne part pas seule. Des poules
             qui se chevauchent, bougent et se cachent sous les mangeoires ne se détectent
             pas de façon fiable : le chiffre serait faux sans qu'on sache de combien.
             Tu pointes chaque poule du doigt, l'application tient le compte et garde les
@@ -127,7 +129,6 @@ export default function Comptage() {
         <CompteurImage
           titre="Poules sur la photo"
           aide="Cadre une zone que tu peux couvrir d'un regard. Deux photos valent mieux qu'une seule trop large."
-          autoDetecter={false}
           onValider={(n) => setPoules(n)}
           onFermer={() => setCompteur(null)}
           libelleValider="Garder"

@@ -2,11 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { analyser, chargerImage } from "../lib/detectionImage";
 import { fmt } from "./format";
 
-// Comptage sur photo. La détection propose, l'équipe tranche : chaque cercle
-// trouvé est une marque qu'on retire d'un doigt, et un doigt posé ailleurs en
-// ajoute une. Le nombre validé est toujours le nombre de marques à l'écran,
-// jamais un chiffre sorti de la machine sans que personne l'ait regardé — une
-// fiche de ponte fausse se paie au moment du bilan, des semaines plus tard.
+// Comptage sur photo. Le pointage au doigt est le mode normal : chaque doigt
+// posé ajoute une marque, chaque doigt sur une marque la retire, et le nombre
+// validé est le nombre de marques à l'écran.
+//
+// La détection automatique ne se déclenche plus à l'ouverture d'une photo. Sur
+// les treize photos réelles de la ferme, elle comptait le carrelage, les trous
+// vides des alvéoles et les croisillons du plastique : 731 marques pour huit
+// alvéoles posées au sol, et la taille retenue restait collée à son minimum sur
+// toutes. Ces motifs sont réguliers et tous de la même taille, et c'est
+// exactement ce que la détection récompense — le sol gagne contre les œufs.
+// Elle reste derrière un bouton, pour pouvoir la juger sur pièces, mais
+// personne ne doit la subir.
+//
+// Ce qui lui manque, c'est la taille d'un œuf et le sens clair-sombre. Un doigt
+// posé sur un œuf avant la détection donnerait les deux d'un coup ; c'est la
+// piste à reprendre.
 //
 // Même feuille que le pavé numérique (Keypad) : plein écran, fond sombre,
 // validation en bas. C'est le geste que l'équipe connaît déjà.
@@ -79,7 +90,7 @@ function mediane(nombres, defaut) {
 export default function CompteurImage({
   titre,
   aide,
-  autoDetecter = true,
+  autoDetecter = false,
   cibles,
   libelleValider = "Reporter",
   onValider,
@@ -266,6 +277,9 @@ export default function CompteurImage({
         {!image && (
           <div className="tf-compteur-vide">
             <p className="tf-note" data-alerte={erreur ? 1 : 0}>{erreur || aide}</p>
+            {/* Dit d'emblée que le comptage se fait au doigt : sans ça on
+                attend une détection qui ne viendra pas. */}
+            <p className="tf-note">Tu compteras en touchant chaque forme du doigt.</p>
             <label className="tf-btn tf-btn-fichier">
               Prendre une photo
               <input type="file" accept="image/*" capture="environment" onChange={prendrePhoto} />
