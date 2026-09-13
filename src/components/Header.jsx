@@ -12,6 +12,7 @@ import { useAuth } from "../context/AuthContext";
 const ECRANS = {
   chef_ferme: [
     { to: "/ferme", l: "Ferme" },
+    { to: "/provende", l: "Provende" },
     { to: "/suivi", l: "Suivi" },
     { to: "/comptage", l: "Photo" },
   ],
@@ -32,6 +33,7 @@ const ECRANS = {
     { to: "/direction", l: "Tableau de bord" },
     { to: "/journal", l: "Journal" },
     { to: "/ferme", l: "Ferme" },
+    { to: "/provende", l: "Provende" },
     { to: "/suivi", l: "Suivi" },
     { to: "/magasin", l: "Ponte" },
     { to: "/comptage", l: "Photo" },

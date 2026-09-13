@@ -6,3 +6,8 @@ dist-ssr
 *.local
 .DS_Store
 .claude/settings.local.json
+
+# Les photos déposées pour essayer le comptage. Tout ce qui est dans public/
+# part tel quel sur gestion.tamaferme.com, à une adresse devinable et sans mot
+# de passe : les photos de la ferme n'ont rien à y faire.
+public/Photo/

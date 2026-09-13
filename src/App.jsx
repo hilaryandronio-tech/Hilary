@@ -12,6 +12,7 @@ import Journal from "./screens/Journal";
 import PointVente from "./screens/PointVente";
 import VentesJour from "./screens/VentesJour";
 import Achats from "./screens/Achats";
+import Provende from "./screens/Provende";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
 import Direction from "./screens/Direction";
@@ -56,6 +57,9 @@ export default function App() {
       <Route path="/ferme" element={<RoutePrivee roles={["chef_ferme"]}><ChefFerme /></RoutePrivee>} />
       {/* Calendrier vaccinal et traitements — le chef de ferme les exécute. */}
       <Route path="/suivi" element={<RoutePrivee roles={["chef_ferme"]}><Suivi /></RoutePrivee>} />
+      {/* Le livre de la provende : un mois, vague par vague, jour par jour.
+          L'écran Ferme ne montre que le stock du soir. */}
+      <Route path="/provende" element={<RoutePrivee roles={["chef_ferme"]}><Provende /></RoutePrivee>} />
       {/* Comptage sur photo — instrument de mesure partagé par la ferme et le
           magasin, sans écriture propre. */}
       <Route path="/comptage" element={<RoutePrivee roles={["magasiniere", "chef_ferme"]}><Comptage /></RoutePrivee>} />
