@@ -22,6 +22,7 @@ const ECRANS = {
   point_vente: [
     { to: "/vente", l: "Caisse" },
     { to: "/ventes-jour", l: "Ventes" },
+    { to: "/achats", l: "Achats" },
     { to: "/commandes", l: "Commandes" },
     { to: "/collecte", l: "Ponte" },
     { to: "/creances", l: "Créances" },
@@ -36,6 +37,7 @@ const ECRANS = {
     { to: "/comptage", l: "Photo" },
     { to: "/vente", l: "Caisse" },
     { to: "/ventes-jour", l: "Ventes" },
+    { to: "/achats", l: "Achats" },
     { to: "/commandes", l: "Commandes" },
     { to: "/creances", l: "Créances" },
     { to: "/clients", l: "Clients" },

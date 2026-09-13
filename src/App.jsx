@@ -11,6 +11,7 @@ import Commandes from "./screens/Commandes";
 import Journal from "./screens/Journal";
 import PointVente from "./screens/PointVente";
 import VentesJour from "./screens/VentesJour";
+import Achats from "./screens/Achats";
 import Creances from "./screens/Creances";
 import Bilan from "./screens/Bilan";
 import Direction from "./screens/Direction";
@@ -65,6 +66,10 @@ export default function App() {
       {/* Ce qui est sorti les jours précédents, avec le calibre et le prix —
           la caisse ne montre que la journée en cours. */}
       <Route path="/ventes-jour" element={<RoutePrivee roles={["point_vente"]}><VentesJour /></RoutePrivee>} />
+      {/* Le registre des bons : qui a acheté quoi, quel jour, en quelle
+          quantité — la même matière que « Ventes », lue ligne à ligne plutôt
+          que totalisée par journée. */}
+      <Route path="/achats" element={<RoutePrivee roles={["point_vente"]}><Achats /></RoutePrivee>} />
       {/* Ce qui est promis par Facebook et WhatsApp, à livrer plus tard. */}
       <Route path="/commandes" element={<RoutePrivee roles={["point_vente"]}><Commandes /></RoutePrivee>} />
       <Route path="/creances" element={<RoutePrivee roles={["point_vente"]}><Creances /></RoutePrivee>} />
