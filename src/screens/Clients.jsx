@@ -7,10 +7,11 @@ import AlerteEchecs from "../components/AlerteEchecs";
 import ChoixClient from "../components/ChoixClient";
 import Facture from "../components/Facture";
 import NouveauClient from "../components/NouveauClient";
+import Alveoles from "../components/Alveoles";
 import MoisSelector, { moisCourant, bornesMois, labelMois } from "../components/MoisSelector";
 import { useClients } from "../lib/useClients";
 
-const TABLES = ["ventes", "vente_lignes"];
+const TABLES = ["ventes", "vente_lignes", "mouvements_alveoles"];
 
 // Le compte d'un client grossiste : l'historique de ses livraisons, réglées
 // ou non. L'écran Créances ne montre que les impayées — une livraison
@@ -232,6 +233,11 @@ export default function Clients() {
             <div className="tf-kpi-l">Ar restant dû sur le mois</div>
           </div>
         </div>
+
+        {/* Les alvéoles de la ferme prêtées à ce client. La carte ne
+            s'affiche que là où il y en a : les autres clients repartent
+            avec les leurs. */}
+        <Alveoles client={client} />
 
         {/* Certains clients — Mercy Ships — reçoivent une facture par semaine
             plutôt qu'une par livraison. La période est libre : la semaine

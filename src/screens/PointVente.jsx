@@ -13,6 +13,7 @@ import { supabase } from "../lib/supabaseClient";
 import { enqueue, uuid } from "../lib/offlineQueue";
 import { lectureCachee } from "../lib/cacheLecture";
 import { useClients } from "../lib/useClients";
+import { useAlveoles } from "../lib/useAlveoles";
 import { useLotsEnPonte } from "../lib/useLotsEnPonte";
 import { useAuth } from "../context/AuthContext";
 
@@ -42,6 +43,7 @@ const cleVente = (cl, calibre, taille) =>
 export default function PointVente() {
   const { profil } = useAuth();
   const clients = useClients();
+  const alveoles = useAlveoles();
   const lots = useLotsEnPonte();
   const [clientKey, setClientKey] = useState(slug(CLIENTS_FALLBACK[0].nom));
   const [prixBase, setPrixBase] = useState({ ...PRIX_BASE, CASSE: PRIX_CASSE });
@@ -135,8 +137,29 @@ export default function PointVente() {
     [draft]
   );
 
+  // Les alvéoles de la ferme qui partent avec le client et celles qu'il
+  // rapporte. Rien à voir avec la vente : il peut rendre des alvéoles sans
+  // rien acheter, et c'est justement le jour où on l'oublierait.
+  //
+  // La vue ne rend que les clients qui empruntent nos alvéoles : y figurer,
+  // c'est en compter.
+  const compteAlveoles = (cl) => !!(cl?.id && alveoles[cl.id]);
+  const alvSorties = (cl) => val(`alv_out_${slug(cl.nom)}`);
+  const alvRendues = (cl) => val(`alv_in_${slug(cl.nom)}`);
+  const totalAlveoles = useMemo(
+    () => clients.reduce((s, cl) => s + alvSorties(cl) + alvRendues(cl), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, clients]
+  );
+  // Le solde tel qu'il sera une fois la saisie enregistrée : le vendeur voit
+  // l'effet de ce qu'il tape avant de valider.
+  const chezLeClient = client?.id
+    ? (alveoles[client.id]?.chez ?? 0) + alvSorties(client) - alvRendues(client)
+    : 0;
+
   const peutEnregistrer =
-    totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0 || totalCharges > 0;
+    totalClients > 0 || totalDetail > 0 || val("rec") > 0 || val("cred") > 0
+    || totalCharges > 0 || totalAlveoles > 0;
 
   // Les lignes portent une clé étrangère vers l'en-tête de vente : tout part
   // en file d'attente dans l'ordre de saisie, jamais en parallèle.
@@ -215,6 +238,21 @@ export default function PointVente() {
           oeufs: l.oeufs,
           prix_unit: prixClient(cl, l.calibre),
         })),
+      });
+    }
+
+    // Les alvéoles, à part de la vente : une boucle séparée, parce qu'un
+    // client peut en rapporter sans rien acheter — et que la boucle
+    // au-dessus s'arrête sur les clients sans ligne de vente.
+    for (const cl of clients) {
+      if (!compteAlveoles(cl)) continue;
+      const sorties = alvSorties(cl);
+      const rendues = alvRendues(cl);
+      if (!sorties && !rendues) continue;
+      await enqueue({
+        table: "mouvements_alveoles",
+        conflict: "id",
+        payload: { id: uuid(), client_id: cl.id, date, sorties, rendues, auteur },
       });
     }
 
@@ -312,7 +350,9 @@ export default function PointVente() {
             clients={clients}
             selection={client?.nom}
             onSelect={(nom) => setClientKey(slug(nom))}
-            marque={(cl) => CALIBRES_CLIENT.some((c) => oeufsClient(cl, c) > 0)}
+            marque={(cl) =>
+              CALIBRES_CLIENT.some((c) => oeufsClient(cl, c) > 0)
+              || alvSorties(cl) > 0 || alvRendues(cl) > 0}
           />
           {/* Sans identifiant Supabase, la commande sera refusée à
               l'enregistrement. Le dire ici, en clair et en permanence : le
@@ -397,6 +437,36 @@ export default function PointVente() {
                 <span className="tf-live-n">{fmt(totalClientCourant)}</span>
                 <span className="tf-live-l">Ar — commande {client.nom}</span>
               </div>
+              {/* Les alvéoles de la ferme, chez les clients qui emportent
+                  les nôtres. Sous le total et non dans la grille des
+                  calibres : ce ne sont pas des œufs, et une case de plus
+                  dans la grille se remplirait un jour par mégarde. */}
+              {compteAlveoles(client) && (
+                <>
+                  <p className="tf-label" style={{ marginTop: 10 }}>Alvéoles de la ferme</p>
+                  <div className="tf-grid2">
+                    <NumField label="Parties avec elle" unit="alv."
+                      value={alvSorties(client)}
+                      onOpen={client.id
+                        ? () => open(`alv_out_${slug(client.nom)}`, `${client.nom} — alvéoles parties`, "alv.")
+                        : undefined}
+                      onChange={client.id ? (v) => poser(`alv_out_${slug(client.nom)}`, v) : undefined} />
+                    <NumField label="Rendues" unit="alv."
+                      value={alvRendues(client)}
+                      onOpen={client.id
+                        ? () => open(`alv_in_${slug(client.nom)}`, `${client.nom} — alvéoles rendues`, "alv.")
+                        : undefined}
+                      onChange={client.id ? (v) => poser(`alv_in_${slug(client.nom)}`, v) : undefined} />
+                  </div>
+                  <p className="tf-note" data-alerte={chezLeClient < 0 ? 1 : 0}>
+                    {chezLeClient < 0
+                      ? `Compte négatif : ${fmt(-chezLeClient)} alvéoles rendues de plus qu'il n'en est parti. `
+                        + "Des sorties n'ont pas été notées."
+                      : `${fmt(chezLeClient)} alvéole${chezLeClient > 1 ? "s" : ""} chez ${client.nom} `
+                        + "après cette saisie."}
+                  </p>
+                </>
+              )}
               <div className="tf-toggle">
                 <button className="tf-chip" data-on={paye(slug(client.nom)) ? 1 : 0}
                   onClick={() => setDraft({ ...draft, [`pay_${slug(client.nom)}`]: "paye" })}>Payé</button>
