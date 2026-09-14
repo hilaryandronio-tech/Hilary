@@ -68,6 +68,15 @@ export const MOTS = {
     oeufs: "Oeufs", paquet: (n) => `Oeufs x${n}`,
     titrePeriode: (du, au) => `Facture du ${du} au ${au}`,
     description: "Description :", colDate: "Date", colCommande: "N° Commande",
+    // Les alvéoles de la ferme parties avec le client. Une mention, pas une
+    // ligne du tableau : elles ne se facturent pas, elles se rendent.
+    alveoles: {
+      titre: "Alvéoles de la ferme :",
+      remises: (n) => `${n} remise${n > 1 ? "s" : ""}`,
+      rendues: (n) => `${n} rendue${n > 1 ? "s" : ""}`,
+      solde: (n) => `${n} à rendre`,
+      soldees: "toutes rendues",
+    },
   },
   en: {
     client: "Customer Name", adresse: "Adress", tel: "Tel",
@@ -82,5 +91,12 @@ export const MOTS = {
     oeufs: "Eggs", paquet: (n) => `Eggs x${n}`,
     titrePeriode: (du, au) => `Invoice from ${du} to ${au}`,
     description: "Description:", colDate: "Date", colCommande: "Order N°",
+    alveoles: {
+      titre: "Farm egg trays:",
+      remises: (n) => `${n} handed over`,
+      rendues: (n) => `${n} returned`,
+      solde: (n) => `${n} outstanding`,
+      soldees: "none outstanding",
+    },
   },
 };

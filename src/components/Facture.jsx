@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fmt } from "./format";
 import { FERME, ADRESSE, PAIEMENT, SIGNATURE, MOTS } from "../data/ferme";
 import { sommeArrettee, sumInWords } from "../lib/enLettres";
+import { supabase } from "../lib/supabaseClient";
 
 // La facture d'une livraison, reproduite d'après les modèles existants
 // (Leader Price du 2026-09-03 en français, Mercy Ships du 2026-09-05 en
@@ -62,6 +63,42 @@ const dateFrancaise = (iso, avecAnnee = true) => {
 // payées par tout le monde pour un écran que trois personnes ouvrent.
 const POLICES = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&family=Source+Serif+4:opsz,wght@8..60,400&display=swap";
 
+// Les alvéoles de la ferme parties avec ce client, arrêtées à la date de la
+// facture. Une facture réimprimée dans six mois doit dire ce qu'elle devait
+// ce jour-là, pas ce qu'elle doit aujourd'hui : le solde se recalcule donc
+// sur les seuls mouvements antérieurs à la livraison.
+//
+// La table peut ne pas exister — la migration n'est pas jouée partout : la
+// requête échoue alors en silence et la facture sort comme avant.
+function useAlveolesFacture(clientId, du, au) {
+  const [etat, setEtat] = useState(null);
+
+  useEffect(() => {
+    setEtat(null);
+    if (!clientId || !au) return;
+    let vivant = true;
+    supabase.from("mouvements_alveoles")
+      .select("date, sorties, rendues")
+      .eq("client_id", clientId)
+      .lte("date", au)
+      .then(({ data }) => {
+        if (!vivant || !data?.length) return;
+        const somme = (lignes, champ) => lignes.reduce((s, m) => s + (m[champ] ?? 0), 0);
+        // Ce qui a bougé sur la livraison — ou sur la semaine, pour une
+        // facture de période.
+        const dedans = data.filter((m) => m.date >= du);
+        setEtat({
+          remises: somme(dedans, "sorties"),
+          rendues: somme(dedans, "rendues"),
+          solde: somme(data, "sorties") - somme(data, "rendues"),
+        });
+      });
+    return () => { vivant = false; };
+  }, [clientId, du, au]);
+
+  return etat;
+}
+
 function usePolicesFacture() {
   useEffect(() => {
     if (document.getElementById("polices-facture")) return;
@@ -77,6 +114,19 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
   usePolicesFacture();
   const langue = client?.langue === "en" ? "en" : "fr";
   const m = MOTS[langue];
+  const alveoles = useAlveolesFacture(
+    client?.id,
+    periode ? periode.du : vente?.date,
+    periode ? periode.au : vente?.date
+  );
+  // Une mention muette n'apprend rien : ni mouvement sur cette livraison, ni
+  // alvéole en attente de retour, et la ligne disparaît.
+  const mentionAlveoles = alveoles && (alveoles.remises || alveoles.rendues || alveoles.solde > 0)
+    ? [
+        alveoles.remises ? m.alveoles.remises(fmt(alveoles.remises)) : null,
+        alveoles.rendues ? m.alveoles.rendues(fmt(alveoles.rendues)) : null,
+      ].filter(Boolean).join(", ")
+    : null;
   // L'emballage par défaut du client, pour les lignes anciennes qui n'en
   // portent pas. Depuis docs/56 chaque ligne a le sien : une facture
   // réimprimée garde la présentation du jour de la livraison, et non celle
@@ -304,6 +354,18 @@ export default function Facture({ vente, client, commande, periode, onFermer }) 
             )}
             {periode && (
               <p className="tf-facture-multi">{m.banque}{"\n"}{PAIEMENT.banque}</p>
+            )}
+            {/* Les alvéoles de la ferme. Elles ne sont pas vendues et ne
+                figurent donc pas au tableau ni au total : c'est du matériel
+                prêté, et la facture est l'endroit où le client lit ce qu'il
+                a entre les mains. */}
+            {mentionAlveoles !== null && (
+              <p>
+                <b>{m.alveoles.titre}</b>{" "}
+                {mentionAlveoles}
+                {mentionAlveoles && " — "}
+                {alveoles.solde > 0 ? m.alveoles.solde(fmt(alveoles.solde)) : m.alveoles.soldees}
+              </p>
             )}
             {/* La facture de période n'annonce pas de délai : elle solde une
                 semaine déjà livrée, et le modèle n'en porte pas. */}
